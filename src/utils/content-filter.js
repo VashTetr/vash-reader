@@ -1,8 +1,8 @@
 class ContentFilter {
     constructor() {
-        // HARD BLOCKED CONTENT - Never allow these under any circumstances
+        // Blocked content that should never be shown
         this.blockedContent = [
-            'loli', 'lolicon', 'shotacon', 'shota'
+            'loli', 'shota', 'lolicon', 'shotacon'
         ];
 
         // Adult content keywords and patterns
@@ -64,8 +64,8 @@ class ContentFilter {
         const textToCheck = [
             manga.title || '',
             manga.description || '',
-            ...(manga.tags || []),
-            ...(manga.genres || []),
+            ...(Array.isArray(manga.tags) ? manga.tags : []),
+            ...(Array.isArray(manga.genres) ? manga.genres : []),
             manga.author || '',
             manga.status || ''
         ].join(' ').toLowerCase();
@@ -87,8 +87,8 @@ class ContentFilter {
         const textToCheck = [
             manga.title || '',
             manga.description || '',
-            ...(manga.tags || []),
-            ...(manga.genres || []),
+            ...(Array.isArray(manga.tags) ? manga.tags : []),
+            ...(Array.isArray(manga.genres) ? manga.genres : []),
             manga.author || '',
             manga.status || ''
         ].join(' ').toLowerCase();

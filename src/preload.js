@@ -27,6 +27,8 @@ contextBridge.exposeInMainWorld('mangaAPI', {
     getReadingProgress: (mangaId, source) => ipcRenderer.invoke('get-reading-progress', mangaId, source),
     findMangaSources: (mangaTitle, mangaUrl) => ipcRenderer.invoke('find-manga-sources', mangaTitle, mangaUrl),
     getMangaDetails: (mangaUrl) => ipcRenderer.invoke('get-manga-details', mangaUrl),
+    getConsensusChapterCount: (mangaTitle, mangaUrl) => ipcRenderer.invoke('get-consensus-chapter-count', mangaTitle, mangaUrl),
+    validateChapterCount: (reportedCount, mangaTitle, mangaUrl) => ipcRenderer.invoke('validate-chapter-count', reportedCount, mangaTitle, mangaUrl),
 
     // Follow system
     addToFollows: (manga) => ipcRenderer.invoke('add-to-follows', manga),

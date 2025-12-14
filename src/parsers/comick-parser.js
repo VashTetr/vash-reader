@@ -478,6 +478,8 @@ class ComickParser extends BaseParser {
 
                     results.push({
                         id: comic.slug || comic.hid,
+                        hid: comic.hid,
+                        slug: comic.slug,
                         title: title,
                         url: `https://comick.io/comic/${comic.slug}`,
                         coverUrl: coverUrl,
@@ -624,6 +626,8 @@ class ComickParser extends BaseParser {
 
                     results.push({
                         id: comic.slug || comic.hid,
+                        hid: comic.hid,
+                        slug: comic.slug,
                         title: title,
                         url: `https://comick.io/comic/${comic.slug}`,
                         coverUrl: coverUrl,
@@ -822,11 +826,11 @@ class ComickParser extends BaseParser {
 
             // Get comic details using the API endpoint
             const comicUrl = `${this.baseUrl}/comic/${slug}`;
+            console.log('Fetching Comick details from:', comicUrl);
             const comicData = await this.fetchJson(comicUrl);
 
             if (comicData && comicData.comic) {
                 const comic = comicData.comic;
-
                 // Extract all titles from md_titles array
                 const allTitles = [];
 
@@ -875,11 +879,20 @@ class ComickParser extends BaseParser {
                     }
                 }
 
+                // Since the chapters endpoint is blocked, use last_chapter as more reliable than chapter_count
+                let realChapterCount = comic.last_chapter || comic.chapter_count;
+
+                // Debug: Log when we use last_chapter instead of chapter_count
+                if (comic.chapter_count !== comic.last_chapter && comic.last_chapter) {
+                    console.log(`Using last_chapter instead of chapter_count for "${comic.title}": ${comic.chapter_count} → ${comic.last_chapter}`);
+                }
+
                 return {
                     title: comic.title,
                     allTitles: allTitles,
                     description: comic.desc || comic.description || '',
                     slug: comic.slug,
+                    hid: comic.hid,
                     status: comic.status,
                     year: comic.year,
                     country: comic.country,
@@ -889,7 +902,7 @@ class ComickParser extends BaseParser {
                     tags: tags,
                     demographic: comic.demographic,
                     contentRating: comic.content_rating,
-                    chapterCount: comic.chapter_count || comic.last_chapter,
+                    chapterCount: realChapterCount,
                     coverUrl: comic.md_covers && comic.md_covers.length > 0 ?
                         `https://meo.comick.pictures/${comic.md_covers[0].b2key}` : null
                 };

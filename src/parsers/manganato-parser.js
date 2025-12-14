@@ -2,11 +2,12 @@ const BaseParser = require('./base-parser');
 
 class ManganatoParser extends BaseParser {
     constructor() {
-        super('Manganato', 'https://readmanganato.com');
+        super('Manganato', 'https://nelomanga.net');
         this.alternativeDomains = [
             'https://readmanganato.com',
             'https://chapmanganato.com',
             'https://manganato.com',
+            'https://nelomanga.net',
             'https://mangakakalot.com'
         ];
     }

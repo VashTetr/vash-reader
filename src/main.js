@@ -3,11 +3,13 @@ const path = require('path');
 const MangaScraper = require('./scraper');
 const Storage = require('./storage');
 const ComickParser = require('./parsers/comick-parser');
+const ChapterConsensus = require('./utils/chapter-consensus');
 
 let mainWindow;
 let mangaScraper;
 let storage;
 let comickParser;
+let chapterConsensus;
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -32,9 +34,18 @@ app.whenReady().then(() => {
     const { session } = require('electron');
 
     session.defaultSession.webRequest.onBeforeSendHeaders(
-        { urls: ['*://zjcdn.mangahere.org/*', '*://mangahere.org/*'] },
+        { urls: ['*://zjcdn.mangahere.org/*', '*://mangahere.org/*', '*://data.tnlycdn.com/*', '*://mangapark.net/*'] },
         (details, callback) => {
-            details.requestHeaders['Referer'] = 'https://www.mangatown.com/';
+            if (details.url.includes('tnlycdn.com')) {
+                // Toonily images
+                details.requestHeaders['Referer'] = 'https://toonily.com/';
+            } else if (details.url.includes('mangapark.net')) {
+                // MangaPark images
+                details.requestHeaders['Referer'] = 'https://mangapark.net/';
+            } else {
+                // MangaTown/MangaHere images
+                details.requestHeaders['Referer'] = 'https://www.mangatown.com/';
+            }
             details.requestHeaders['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
             callback({ requestHeaders: details.requestHeaders });
         }
@@ -42,6 +53,7 @@ app.whenReady().then(() => {
     mangaScraper = new MangaScraper();
     storage = new Storage();
     comickParser = new ComickParser();
+    chapterConsensus = new ChapterConsensus(mangaScraper);
     createWindow();
 });
 
@@ -236,6 +248,24 @@ ipcMain.handle('get-manga-details', async (event, mangaUrl) => {
     } catch (error) {
         console.error('Get manga details error:', error);
         return { error: error.message };
+    }
+});
+
+ipcMain.handle('get-consensus-chapter-count', async (event, mangaTitle, mangaUrl = null) => {
+    try {
+        return await chapterConsensus.getQuickChapterCount(mangaTitle, mangaUrl);
+    } catch (error) {
+        console.error('Error getting consensus chapter count:', error);
+        return 0;
+    }
+});
+
+ipcMain.handle('validate-chapter-count', async (event, reportedCount, mangaTitle, mangaUrl = null) => {
+    try {
+        return await chapterConsensus.validateChapterCount(reportedCount, mangaTitle, mangaUrl);
+    } catch (error) {
+        console.error('Error validating chapter count:', error);
+        return { isReasonable: true, suggestedCount: reportedCount, confidence: 0 };
     }
 });
 

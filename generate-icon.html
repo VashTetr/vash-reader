@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Vash Reader Icon Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+
+        .icon-preview {
+            margin: 20px 0;
+        }
+
+        canvas {
+            border: 2px solid #333;
+            margin: 10px;
+            background: white;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #ff5252;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🎨 Vash Reader Icon Generator</h1>
+    <p>Click the buttons below to generate and download icon files:</p>
+
+    <div class="icon-preview">
+        <canvas id="icon512" width="512" height="512"></canvas>
+        <canvas id="icon256" width="256" height="256"></canvas>
+        <canvas id="icon128" width="128" height="128"></canvas>
+        <canvas id="icon64" width="64" height="64"></canvas>
+    </div>
+
+    <div>
+        <button onclick="generateIcons()">Generate Icons</button>
+        <button onclick="downloadIcon(512)">Download 512x512</button>
+        <button onclick="downloadIcon(256)">Download 256x256</button>
+        <button onclick="downloadIcon(128)">Download 128x128</button>
+        <button onclick="downloadIcon(64)">Download 64x64</button>
+    </div>
+
+    <script>
+        function drawIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            const scale = size / 512;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, size, size);
+
+            // Background circle
+            ctx.beginPath();
+            ctx.arc(size / 2, size / 2, 240 * scale, 0, 2 * Math.PI);
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fill();
+            ctx.strokeStyle = '#ff6b6b';
+            ctx.lineWidth = 8 * scale;
+            ctx.stroke();
+
+            // Book pages
+            const bookX = 160 * scale;
+            const bookY = 140 * scale;
+            const bookW = 152 * scale;
+            const bookH = 200 * scale;
+
+            // Back page
+            ctx.fillStyle = '#f1f3f4';
+            ctx.fillRect(bookX, bookY, bookW, bookH);
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2 * scale;
+            ctx.strokeRect(bookX, bookY, bookW, bookH);
+
+            // Middle page
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(bookX + 10 * scale, bookY - 10 * scale, bookW, bookH);
+            ctx.strokeRect(bookX + 10 * scale, bookY - 10 * scale, bookW, bookH);
+
+            // Front page
+            ctx.fillStyle = '#f8f9fa';
+            ctx.fillRect(bookX + 20 * scale, bookY - 20 * scale, bookW, bookH);
+            ctx.strokeRect(bookX + 20 * scale, bookY - 20 * scale, bookW, bookH);
+
+            // Panel lines
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 2 * scale;
+            const pageX = bookX + 20 * scale;
+            const pageY = bookY - 20 * scale;
+
+            // Horizontal lines
+            for (let i = 1; i <= 3; i++) {
+                ctx.beginPath();
+                ctx.moveTo(pageX + 20 * scale, pageY + (40 * i) * scale);
+                ctx.lineTo(pageX + 110 * scale, pageY + (40 * i) * scale);
+                ctx.stroke();
+            }
+
+            // Vertical line
+            ctx.beginPath();
+            ctx.moveTo(pageX + 60 * scale, pageY + 20 * scale);
+            ctx.lineTo(pageX + 60 * scale, pageY + 140 * scale);
+            ctx.stroke();
+
+            // Stylized "V" for Vash
+            ctx.strokeStyle = '#ff6b6b';
+            ctx.lineWidth = 6 * scale;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(pageX + 40 * scale, pageY + 20 * scale);
+            ctx.lineTo(pageX + 60 * scale, pageY + 100 * scale);
+            ctx.lineTo(pageX + 80 * scale, pageY + 20 * scale);
+            ctx.stroke();
+
+            // Eye symbol
+            ctx.strokeStyle = '#ff6b6b';
+            ctx.lineWidth = 3 * scale;
+            ctx.beginPath();
+            ctx.arc(pageX + 100 * scale, pageY + 60 * scale, 20 * scale, 0, 2 * Math.PI);
+            ctx.stroke();
+
+            ctx.fillStyle = '#ff6b6b';
+            ctx.beginPath();
+            ctx.arc(pageX + 100 * scale, pageY + 60 * scale, 8 * scale, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Speed lines
+            ctx.strokeStyle = '#ff6b6b';
+            ctx.lineWidth = 3 * scale;
+            ctx.lineCap = 'round';
+
+            const speedX = 340 * scale;
+            const speedY = 180 * scale;
+
+            ctx.beginPath();
+            ctx.moveTo(speedX, speedY);
+            ctx.lineTo(speedX + 40 * scale, speedY - 20 * scale);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(speedX, speedY + 20 * scale);
+            ctx.lineTo(speedX + 50 * scale, speedY + 10 * scale);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(speedX, speedY + 40 * scale);
+            ctx.lineTo(speedX + 45 * scale, speedY + 40 * scale);
+            ctx.stroke();
+        }
+
+        function generateIcons() {
+            [512, 256, 128, 64].forEach(size => {
+                const canvas = document.getElementById(`icon${size}`);
+                drawIcon(canvas, size);
+            });
+        }
+
+        function downloadIcon(size) {
+            const canvas = document.getElementById(`icon${size}`);
+            const link = document.createElement('a');
+            link.download = `icon-${size}x${size}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        // Generate icons on page load
+        window.onload = generateIcons;
+    </script>
+</body>
+
+</html>

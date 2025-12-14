@@ -89,6 +89,71 @@
                 <div id="resultsGrid" class="results-grid"></div>
             </div>
 
+            <!-- Manga Details Page -->
+            <div id="mangaDetails" class="manga-details hidden">
+                <button id="backToSearchResults" class="back-btn">← Back</button>
+                <div class="manga-details-content">
+                    <div class="manga-info-header">
+                        <div class="manga-cover-section">
+                            <img id="mangaCoverImage" class="manga-details-cover" alt="Manga Cover">
+                            <div class="manga-rating">
+                                <span class="rating-label">Rating:</span>
+                                <span id="mangaRating" class="rating-value">N/A</span>
+                                <span class="rating-stars" id="mangaStars"></span>
+                            </div>
+                        </div>
+                        <div class="manga-info-section">
+                            <h1 id="mangaDetailsTitle" class="manga-details-title"></h1>
+                            <div class="manga-metadata">
+                                <div class="metadata-item">
+                                    <span class="metadata-label">Alternative Names:</span>
+                                    <div id="mangaAltNames" class="metadata-value alt-names"></div>
+                                </div>
+                                <div class="metadata-item">
+                                    <span class="metadata-label">Chapters:</span>
+                                    <span id="mangaChapterCount" class="metadata-value">Loading...</span>
+                                </div>
+                                <div class="metadata-item">
+                                    <span class="metadata-label">Status:</span>
+                                    <span id="mangaStatus" class="metadata-value">Unknown</span>
+                                </div>
+                                <div class="metadata-item">
+                                    <span class="metadata-label">Year:</span>
+                                    <span id="mangaYear" class="metadata-value">Unknown</span>
+                                </div>
+                                <div class="metadata-item">
+                                    <span class="metadata-label">Country:</span>
+                                    <span id="mangaCountry" class="metadata-value">Unknown</span>
+                                </div>
+                            </div>
+                            <div class="manga-description">
+                                <h3>Description</h3>
+                                <p id="mangaDescription" class="description-text"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="manga-tags-section">
+                        <div class="tags-group">
+                            <h3>Genres</h3>
+                            <div id="mangaGenres" class="tags-container"></div>
+                        </div>
+                        <div class="tags-group">
+                            <h3>Categories</h3>
+                            <div id="mangaCategories" class="tags-container"></div>
+                        </div>
+                    </div>
+
+                    <div class="manga-sources-section">
+                        <h3>Available Sources</h3>
+                        <p class="sources-subtitle">Choose where to read this manga:</p>
+                        <div id="mangaSources" class="sources-grid loading">
+                            <div class="loading-message">🔍 Finding available sources...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="sourceSelection" class="source-selection hidden">
                 <button id="backToHome" class="back-btn">← Back to Home</button>
                 <h2 id="sourceSelectionTitle"></h2>
@@ -97,7 +162,7 @@
             </div>
 
             <div id="chapterList" class="chapter-list hidden">
-                <button id="backToSourceSelection" class="back-btn">← Back to Sources</button>
+                <button id="backToSourceSelection" class="back-btn">← Back to Details</button>
                 <h2 id="mangaTitle"></h2>
                 <div id="chaptersGrid" class="chapters-grid"></div>
             </div>

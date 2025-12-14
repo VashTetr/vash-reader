@@ -820,7 +820,7 @@ class ComickParser extends BaseParser {
             // Extract slug from URL (e.g., https://comick.io/comic/one-piece -> one-piece)
             const slug = mangaUrl.split('/').pop();
 
-            // Get comic details
+            // Get comic details using the API endpoint
             const comicUrl = `${this.baseUrl}/comic/${slug}`;
             const comicData = await this.fetchJson(comicUrl);
 
@@ -855,11 +855,43 @@ class ComickParser extends BaseParser {
                     }
                 }
 
+                // Extract genres from md_comic_md_genres
+                const genres = [];
+                if (comic.md_comic_md_genres && Array.isArray(comic.md_comic_md_genres)) {
+                    for (const genreObj of comic.md_comic_md_genres) {
+                        if (genreObj.md_genres && genreObj.md_genres.name) {
+                            genres.push(genreObj.md_genres.name);
+                        }
+                    }
+                }
+
+                // Extract tags from md_comic_md_tags
+                const tags = [];
+                if (comic.md_comic_md_tags && Array.isArray(comic.md_comic_md_tags)) {
+                    for (const tagObj of comic.md_comic_md_tags) {
+                        if (tagObj.md_tags && tagObj.md_tags.name) {
+                            tags.push(tagObj.md_tags.name);
+                        }
+                    }
+                }
+
                 return {
                     title: comic.title,
                     allTitles: allTitles,
                     description: comic.desc || comic.description || '',
-                    slug: comic.slug
+                    slug: comic.slug,
+                    status: comic.status,
+                    year: comic.year,
+                    country: comic.country,
+                    rating: comic.rating,
+                    follows: comic.follow_count || comic.user_follow_count,
+                    genres: genres,
+                    tags: tags,
+                    demographic: comic.demographic,
+                    contentRating: comic.content_rating,
+                    chapterCount: comic.chapter_count || comic.last_chapter,
+                    coverUrl: comic.md_covers && comic.md_covers.length > 0 ?
+                        `https://meo.comick.pictures/${comic.md_covers[0].b2key}` : null
                 };
             }
 

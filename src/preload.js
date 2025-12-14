@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('mangaAPI', {
         ipcRenderer.invoke('update-reading-progress', mangaId, source, chapterNumber, pageNumber),
     getReadingProgress: (mangaId, source) => ipcRenderer.invoke('get-reading-progress', mangaId, source),
     findMangaSources: (mangaTitle, mangaUrl) => ipcRenderer.invoke('find-manga-sources', mangaTitle, mangaUrl),
+    getMangaDetails: (mangaUrl) => ipcRenderer.invoke('get-manga-details', mangaUrl),
 
     // Follow system
     addToFollows: (manga) => ipcRenderer.invoke('add-to-follows', manga),

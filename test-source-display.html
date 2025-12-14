@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Test Source Display</title>
+    <style>
+        .source-card {
+            background: #333;
+            border: 2px solid #444;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .source-name {
+            color: #ff6b6b;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .source-url {
+            color: #ccc;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Source Display Test</h1>
+    <div id="sourcesContainer"></div>
+
+    <script>
+        // Test data similar to what the app receives
+        const testSources = [
+            {
+                "id": "all-my-alter-egos-are-tycoons",
+                "title": "All My Alter Egos Are Tycoons",
+                "url": "https://mangamonk.com/all-my-alter-egos-are-tycoons",
+                "coverUrl": "https://res.mgcdn.xyz/x.gif",
+                "source": "TrueManga",
+                "parserName": "TrueManga",
+                "relevanceScore": 100
+            },
+            {
+                "id": "all-my-alter-egos-are-tycoons",
+                "title": "All My Alter Egos Are Tycoons",
+                "url": "https://mangabuddy.com/all-my-alter-egos-are-tycoons",
+                "coverUrl": "https://res.mgcdn.xyz/x.gif",
+                "source": "MangaBuddy",
+                "parserName": "MangaBuddy",
+                "relevanceScore": 100
+            }
+        ];
+
+        function createSourceCard(source) {
+            const card = document.createElement('div');
+            card.className = 'source-card';
+
+            // Get the source name, trying multiple possible properties
+            const sourceName = source.parserName || source.source || source.name || 'Unknown Source';
+
+            console.log('Creating source card for:', source);
+            console.log('Source name resolved to:', sourceName);
+
+            card.innerHTML = `
+                <div class="source-name">${sourceName}</div>
+                <div class="source-url">${source.url || 'No URL'}</div>
+                <div class="source-chapters">Chapters: <span class="chapter-count">Checking...</span></div>
+                <div class="source-status checking">Checking</div>
+            `;
+
+            return card;
+        }
+
+        // Create and display source cards
+        const container = document.getElementById('sourcesContainer');
+        testSources.forEach(source => {
+            const card = createSourceCard(source);
+            container.appendChild(card);
+        });
+    </script>
+</body>
+
+</html>

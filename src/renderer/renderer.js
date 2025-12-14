@@ -24,6 +24,10 @@ class MangaReader {
         // Initialize content filter
         this.contentFilter = new ContentFilter();
 
+        // Navigation history
+        this.navigationHistory = [];
+        this.currentContinueInfo = null;
+
         this.initializeEventListeners();
         this.loadHomePage();
         this.updateNotificationBadge();
@@ -83,9 +87,10 @@ class MangaReader {
         // Navigation
         addListener('homeTitle', 'click', () => this.showHomePage());
 
-        addListener('backToSourceSelection', 'click', () => this.showSourceSelection());
+        addListener('backToSourceSelection', 'click', () => this.showMangaDetails(this.currentManga, this.currentContinueInfo));
         addListener('backToHomeFromFollows', 'click', () => this.showHomePage());
         addListener('backToHomeFromNotifications', 'click', () => this.showHomePage());
+        addListener('backToSearchResults', 'click', () => this.goBack());
 
         // Header buttons
         addListener('followsBtn', 'click', () => this.showFollowsPage());
@@ -691,11 +696,93 @@ class MangaReader {
             console.error('Failed to check following list:', error);
         }
 
+        // Fetch detailed metadata from Comick API if this is a Comick result
+        let detailedManga = manga;
+        if (manga.source === 'Comick' && manga.id) {
+            try {
+                const comickDetails = await window.mangaAPI.getMangaDetails(manga.id, 'Comick');
+                if (comickDetails) {
+                    detailedManga = { ...manga, ...comickDetails };
+                }
+            } catch (error) {
+                console.log('Could not fetch Comick details for', manga.title, ':', error.message);
+            }
+        }
+
+        // Format metadata for display (always show metadata, never description)
+        const chapterCount = detailedManga.chapterCount || detailedManga.chapters || 'Unknown';
+        const status = detailedManga.status || 'Unknown';
+        const year = detailedManga.year || 'Unknown';
+
+        // Check if all metadata is unknown (treat as 18+ content)
+        const allMetadataUnknown = chapterCount === 'Unknown' && status === 'Unknown' && year === 'Unknown' &&
+            (!detailedManga.genres || detailedManga.genres.length === 0);
+
+        // Format genres (show first 3-4 genres)
+        let genresDisplay = '';
+        if (detailedManga.genres && detailedManga.genres.length > 0) {
+            const displayGenres = detailedManga.genres.slice(0, 4);
+            genresDisplay = displayGenres.map(genre => `<span class="genre-tag">${genre}</span>`).join('');
+        }
+
+        const contentSection = `
+            <div class="manga-metadata">
+                <div class="metadata-row">
+                    <span class="metadata-label">Chapters:</span>
+                    <span class="metadata-value">${chapterCount}</span>
+                </div>
+                <div class="metadata-row">
+                    <span class="metadata-label">Status:</span>
+                    <span class="metadata-value">${status}</span>
+                </div>
+                <div class="metadata-row">
+                    <span class="metadata-label">Year:</span>
+                    <span class="metadata-value">${year}</span>
+                </div>
+                ${genresDisplay ? `<div class="manga-genres">${genresDisplay}</div>` : ''}
+            </div>
+        `;
+
+        // Check if content should be filtered (adult content OR unknown metadata)
+        const isAdultContent = this.contentFilter.isAdultContent(detailedManga);
+        const shouldCensor = (isAdultContent || allMetadataUnknown) && this.contentFilter.isEnabled;
+
+        // Determine the reason for censoring
+        let censorReason = 'Adult Content';
+        if (allMetadataUnknown && !isAdultContent) {
+            censorReason = 'Unknown Content - 18+';
+        }
+
+        // Apply content filtering
+        let coverImage = '';
+        if (manga.coverUrl) {
+            if (shouldCensor) {
+                // Create censored image HTML
+                coverImage = `
+                    <div class="censored-container">
+                        <img src="${manga.coverUrl}" alt="${manga.title}" class="manga-cover censored-content">
+                        <div class="censor-overlay">
+                            <div class="censor-content">
+                                <div class="censor-icon">🔞</div>
+                                <div class="censor-text">${censorReason}</div>
+                                <button class="censor-toggle" onclick="event.stopPropagation(); this.parentElement.parentElement.parentElement.classList.toggle('uncensored'); this.textContent = this.parentElement.parentElement.parentElement.classList.contains('uncensored') ? 'Hide' : 'Click to View'">Click to View</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                coverImage = `<img src="${manga.coverUrl}" alt="${manga.title}" class="manga-cover">`;
+            }
+        } else {
+            coverImage = '<div class="manga-cover" style="background: #444; display: flex; align-items: center; justify-content: center; color: #999;">No Image</div>';
+        }
+
         card.innerHTML = `
-            ${manga.coverUrl ? `<img src="${manga.coverUrl}" alt="${manga.title}" class="manga-cover">` : '<div class="manga-cover" style="background: #444; display: flex; align-items: center; justify-content: center; color: #999;">No Image</div>'}
+            ${coverImage}
             <div class="manga-title">${displayTitle}</div>
             <div class="manga-source">${manga.source}</div>
-            <div class="manga-description">${manga.description || 'No description available'}</div>
+            ${contentSection}
+            ${(isAdultContent || allMetadataUnknown) ? '<div class="content-warning">18+</div>' : ''}
             ${continueButton}
             <button class="manga-menu" onclick="event.stopPropagation()">⋮</button>
         `;
@@ -1486,6 +1573,25 @@ class MangaReader {
         document.getElementById('searchResults').classList.remove('hidden');
     }
 
+    async showMangaDetails(manga, continueInfo = null, fromPage = null) {
+        // Store continue info for when we navigate back
+        this.currentContinueInfo = continueInfo;
+
+        // Add to navigation history if fromPage is specified
+        if (fromPage) {
+            this.navigationHistory.push(fromPage);
+        }
+
+        this.hideAllViews();
+        document.getElementById('mangaDetails').classList.remove('hidden');
+
+        // Populate basic manga information
+        await this.populateMangaDetails(manga, continueInfo);
+
+        // Find and display available sources
+        await this.findMangaSources(manga);
+    }
+
     showChapterList() {
         this.hideAllViews();
         document.getElementById('chapterList').classList.remove('hidden');
@@ -1496,14 +1602,315 @@ class MangaReader {
         document.getElementById('reader').classList.remove('hidden');
     }
 
+    async populateMangaDetails(manga, continueInfo = null) {
+        // Set title
+        document.getElementById('mangaDetailsTitle').textContent = manga.title;
+
+        // Set cover image
+        const coverImg = document.getElementById('mangaCoverImage');
+        if (manga.coverUrl) {
+            coverImg.src = manga.coverUrl;
+            coverImg.style.display = 'block';
+        } else {
+            coverImg.style.display = 'none';
+        }
+
+        // Set rating
+        const ratingElement = document.getElementById('mangaRating');
+        const starsElement = document.getElementById('mangaStars');
+        if (manga.rating) {
+            ratingElement.textContent = manga.rating.toFixed(1);
+            starsElement.textContent = this.generateStars(manga.rating);
+        } else {
+            ratingElement.textContent = 'N/A';
+            starsElement.textContent = '';
+        }
+
+        // Add continue button below rating if there's reading progress
+        const ratingContainer = document.querySelector('.manga-rating');
+
+        // Remove any existing continue button
+        const existingContinueBtn = ratingContainer.querySelector('.manga-continue-btn');
+        if (existingContinueBtn) {
+            existingContinueBtn.remove();
+        }
+
+        if (continueInfo) {
+            const continueBtn = document.createElement('button');
+            continueBtn.className = 'manga-continue-btn';
+            continueBtn.innerHTML = `
+                <span class="continue-icon">📖</span>
+                <span class="continue-text">Continue Ch. ${continueInfo.progress.chapterNumber}</span>
+                <span class="continue-source">${continueInfo.parserName}</span>
+            `;
+
+            continueBtn.addEventListener('click', async () => {
+                await this.continueReading(manga, continueInfo);
+            });
+
+            ratingContainer.appendChild(continueBtn);
+        }
+
+        // Get detailed information from Comick if available
+        let detailedInfo = null;
+        if (manga.url && manga.url.includes('comick')) {
+            try {
+                detailedInfo = await window.mangaAPI.getMangaDetails(manga.url);
+                console.log('Detailed manga info:', detailedInfo);
+            } catch (error) {
+                console.error('Failed to get detailed manga info:', error);
+            }
+        }
+
+        // Use detailed info if available, otherwise use basic manga data
+        const displayData = detailedInfo || manga;
+
+        // Set description with read more functionality
+        this.populateDescription(displayData.description || 'No description available.');
+
+        // Set metadata using detailed info
+        document.getElementById('mangaStatus').textContent = this.getStatusText(displayData.status) || 'Unknown';
+        document.getElementById('mangaYear').textContent = displayData.year || 'Unknown';
+        document.getElementById('mangaCountry').textContent = this.getCountryText(displayData.country) || 'Unknown';
+
+        // Set alternative names
+        this.populateAlternativeNames(detailedInfo?.allTitles || [manga.title]);
+
+        // Set genres and categories using detailed info
+        this.populateGenresAndCategories(displayData);
+
+        // Set chapter count
+        if (detailedInfo?.chapterCount) {
+            document.getElementById('mangaChapterCount').textContent = detailedInfo.chapterCount;
+        } else {
+            document.getElementById('mangaChapterCount').textContent = 'Loading...';
+        }
+    }
+
+    generateStars(rating) {
+        const fullStars = Math.floor(rating / 2);
+        const halfStar = (rating % 2) >= 1;
+        const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+
+        return '★'.repeat(fullStars) + (halfStar ? '☆' : '') + '☆'.repeat(emptyStars);
+    }
+
+    getStatusText(status) {
+        const statusMap = {
+            1: 'Ongoing',
+            2: 'Completed',
+            3: 'Cancelled',
+            4: 'Hiatus'
+        };
+        return statusMap[status] || status;
+    }
+
+    getCountryText(country) {
+        const countryMap = {
+            'jp': 'Japan',
+            'kr': 'Korea',
+            'cn': 'China'
+        };
+        return countryMap[country] || country;
+    }
+
+    populateAlternativeNames(titles) {
+        const container = document.getElementById('mangaAltNames');
+        container.innerHTML = '';
+
+        if (titles && titles.length > 0) {
+            titles.forEach(title => {
+                const tag = document.createElement('span');
+                tag.className = 'alt-name-tag';
+                tag.textContent = title;
+                container.appendChild(tag);
+            });
+        } else {
+            container.innerHTML = '<span class="alt-name-tag">No alternative names</span>';
+        }
+    }
+
+    populateDescription(description) {
+        const descriptionElement = document.getElementById('mangaDescription');
+
+        if (!description || description === 'No description available.') {
+            descriptionElement.textContent = 'No description available.';
+            return;
+        }
+
+        // Always show the full description
+        descriptionElement.textContent = description;
+    }
+
+    populateGenresAndCategories(manga) {
+        const genresContainer = document.getElementById('mangaGenres');
+        const categoriesContainer = document.getElementById('mangaCategories');
+
+        // Clear containers
+        genresContainer.innerHTML = '';
+        categoriesContainer.innerHTML = '';
+
+        // Populate genres
+        if (manga.genres && manga.genres.length > 0) {
+            manga.genres.forEach(genre => {
+                const tag = document.createElement('span');
+                tag.className = 'tag-item';
+                tag.textContent = genre;
+                genresContainer.appendChild(tag);
+            });
+        } else {
+            genresContainer.innerHTML = '<span class="tag-item">No genres available</span>';
+        }
+
+        // Populate categories/tags
+        if (manga.tags && manga.tags.length > 0) {
+            manga.tags.forEach(tag => {
+                const tagElement = document.createElement('span');
+                tagElement.className = 'tag-item';
+                tagElement.textContent = tag;
+                categoriesContainer.appendChild(tagElement);
+            });
+        } else {
+            categoriesContainer.innerHTML = '<span class="tag-item">No categories available</span>';
+        }
+    }
+
+    async findMangaSources(manga) {
+        const sourcesContainer = document.getElementById('mangaSources');
+        sourcesContainer.innerHTML = '<div class="loading-message">🔍 Finding available sources...</div>';
+
+        try {
+            // Use the existing findMangaSources functionality
+            const sources = await window.mangaAPI.findMangaSources(manga.title, manga.url);
+
+            if (sources.length === 0) {
+                sourcesContainer.innerHTML = '<div class="loading-message">❌ No sources found for this manga</div>';
+                return;
+            }
+
+            sourcesContainer.innerHTML = '';
+
+            // Group sources by parser name (like the old version)
+            const groupedSources = {};
+            sources.forEach(source => {
+                const parserName = source.parserName || source.source;
+                if (!groupedSources[parserName]) {
+                    groupedSources[parserName] = [];
+                }
+                groupedSources[parserName].push(source);
+            });
+
+            // Create cards for each source group
+            Object.entries(groupedSources).forEach(([parserName, sourceList]) => {
+                const bestMatch = sourceList[0]; // Take the first/best match
+                const card = this.createSourceCard(manga, bestMatch, parserName);
+                sourcesContainer.appendChild(card);
+            });
+
+        } catch (error) {
+            console.error('Failed to find manga sources:', error);
+            sourcesContainer.innerHTML = '<div class="loading-message">❌ Failed to find sources</div>';
+        }
+    }
+
+    createSourceCard(manga, source, parserName) {
+        const card = document.createElement('div');
+        card.className = 'source-card';
+
+        card.innerHTML = `
+            <div class="source-name">${parserName}</div>
+            <div class="source-url">${source.url}</div>
+            <div class="source-chapters">Chapters: <span class="chapter-count">Checking...</span></div>
+            <div class="source-status checking">Checking</div>
+        `;
+
+        // Add click handler
+        card.addEventListener('click', () => {
+            if (!card.classList.contains('loading')) {
+                this.selectMangaFromSource(manga, source);
+            }
+        });
+
+        // Check chapter count asynchronously
+        this.checkSourceChapters(card, source, parserName);
+
+        return card;
+    }
+
+    async checkSourceChapters(card, source, parserName) {
+        try {
+            const chapters = await window.mangaAPI.getChapters(source.url, parserName);
+
+            const chapterCountElement = card.querySelector('.chapter-count');
+            const statusElement = card.querySelector('.source-status');
+
+            if (chapters.length > 0) {
+                chapterCountElement.textContent = chapters.length;
+                statusElement.textContent = 'Available';
+                statusElement.className = 'source-status available';
+
+                // Update the main chapter count if this is the first successful source
+                const mainChapterCount = document.getElementById('mangaChapterCount');
+                if (mainChapterCount.textContent === 'Loading...') {
+                    mainChapterCount.textContent = chapters.length;
+                }
+            } else {
+                chapterCountElement.textContent = '0';
+                statusElement.textContent = 'No Chapters';
+                statusElement.className = 'source-status unavailable';
+                card.classList.add('loading'); // Disable clicking
+            }
+        } catch (error) {
+            console.error(`Failed to check chapters for ${parserName}:`, error);
+
+            const chapterCountElement = card.querySelector('.chapter-count');
+            const statusElement = card.querySelector('.source-status');
+
+            chapterCountElement.textContent = 'Error';
+            statusElement.textContent = 'Unavailable';
+            statusElement.className = 'source-status unavailable';
+            card.classList.add('loading'); // Disable clicking
+        }
+    }
+
     hideAllViews() {
         document.getElementById('homePage').classList.add('hidden');
         document.getElementById('searchResults').classList.add('hidden');
+        document.getElementById('mangaDetails').classList.add('hidden');
         document.getElementById('sourceSelection').classList.add('hidden');
         document.getElementById('chapterList').classList.add('hidden');
         document.getElementById('reader').classList.add('hidden');
         document.getElementById('followsPage').classList.add('hidden');
         document.getElementById('notificationsPage').classList.add('hidden');
+    }
+
+    goBack() {
+        // If we have navigation history, go to the last page
+        if (this.navigationHistory.length > 0) {
+            const previousPage = this.navigationHistory.pop();
+
+            switch (previousPage) {
+                case 'home':
+                    this.showHomePage();
+                    break;
+                case 'search':
+                    this.showSearchResults();
+                    break;
+                case 'follows':
+                    this.showFollowsPage();
+                    break;
+                case 'notifications':
+                    this.showNotificationsPage();
+                    break;
+                default:
+                    // Fallback to home if unknown page
+                    this.showHomePage();
+                    break;
+            }
+        } else {
+            // No history, default to home page
+            this.showHomePage();
+        }
     }
 
     showSourceSelection() {
@@ -1685,60 +2092,63 @@ class MangaReader {
         }
     }
 
-    // Override selectManga to show source selection
+    // Override selectManga to show manga details page
     async selectManga(manga) {
         this.currentManga = manga;
 
-        // Continue with normal manga selection flow
-
-        // If this is an imported manga without cover, try to fetch it
-        if (!manga.coverUrl && manga.source === 'Comick' && manga.id) {
-            try {
-                console.log('Fetching cover for imported manga:', manga.title);
-                const searchResults = await window.mangaAPI.searchBySource(manga.title, 'Comick');
-
-                if (searchResults.length > 0) {
-                    const bestMatch = searchResults.find(result =>
-                        result.id === manga.id ||
-                        result.title.toLowerCase() === manga.title.toLowerCase()
-                    ) || searchResults[0];
-
-                    if (bestMatch && bestMatch.coverUrl) {
-                        // Update the manga with cover URL
-                        manga.coverUrl = bestMatch.coverUrl;
-
-                        // Update in storage
-                        await window.mangaAPI.updateFollowCoverUrl(manga.id, manga.source, bestMatch.coverUrl);
-
-                        // Update the current manga object
-                        this.currentManga.coverUrl = bestMatch.coverUrl;
-
-                        console.log('Cover fetched and updated for:', manga.title);
-                    }
-                }
-            } catch (error) {
-                console.error('Failed to fetch cover for imported manga:', error);
-            }
+        // Detect which page we're coming from
+        let fromPage = 'home'; // default
+        if (!document.getElementById('homePage').classList.contains('hidden')) {
+            fromPage = 'home';
+        } else if (!document.getElementById('searchResults').classList.contains('hidden')) {
+            fromPage = 'search';
+        } else if (!document.getElementById('followsPage').classList.contains('hidden')) {
+            fromPage = 'follows';
+        } else if (!document.getElementById('notificationsPage').classList.contains('hidden')) {
+            fromPage = 'notifications';
         }
 
-
-
-        // Skip continue dialog for Last Read items since they now have Continue buttons
-        // Only show continue dialog when clicking on manga from other places (like search results)
-        // that have reading history but aren't from Last Read section
-
-        this.showLoading('Checking reading progress...');
+        // Check for reading progress first, then pass it to showMangaDetails
+        let continueInfo = null;
 
         try {
-            // First, find sources for this manga
+            // If this is an imported manga without cover, try to fetch it
+            if (!manga.coverUrl && manga.source === 'Comick' && manga.id) {
+                try {
+                    console.log('Fetching cover for imported manga:', manga.title);
+                    const searchResults = await window.mangaAPI.searchBySource(manga.title, 'Comick');
+
+                    if (searchResults.length > 0) {
+                        const bestMatch = searchResults.find(result =>
+                            result.id === manga.id ||
+                            result.title.toLowerCase() === manga.title.toLowerCase()
+                        ) || searchResults[0];
+
+                        if (bestMatch && bestMatch.coverUrl) {
+                            // Update the manga with cover URL
+                            manga.coverUrl = bestMatch.coverUrl;
+
+                            // Update in storage
+                            await window.mangaAPI.updateFollowCoverUrl(manga.id, manga.source, bestMatch.coverUrl);
+
+                            // Update the current manga object
+                            this.currentManga.coverUrl = bestMatch.coverUrl;
+
+                            console.log('Cover fetched and updated for:', manga.title);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch cover for imported manga:', error);
+                }
+            }
+
+            // Find sources for this manga
             const sources = await window.mangaAPI.findMangaSources(manga.title, manga.url);
 
             console.log('DEBUG: Checking progress for manga:', manga);
             console.log('DEBUG: Found sources:', sources);
 
             // Check for reading progress across all sources
-            let continueInfo = null;
-
             // First, try with the current manga ID
             for (const source of sources) {
                 const sourceName = source.parserName || source.source;
@@ -1814,18 +2224,12 @@ class MangaReader {
                 }
             }
 
-            // If user has reading progress, show continue option
-            if (continueInfo) {
-                console.log('DEBUG: Showing continue dialog');
-                this.showContinueDialog(manga, continueInfo, sources);
-            } else {
-                console.log('DEBUG: No progress found, showing source selection');
-                // No progress found, go directly to source selection
-                this.displaySourceSelection(manga, sources);
-            }
         } catch (error) {
-            this.showError('Failed to find sources: ' + error.message);
+            console.error('Failed to check reading progress:', error);
         }
+
+        // Show manga details page with continue info (if any)
+        await this.showMangaDetails(manga, continueInfo, fromPage);
     }
 
     showContinueDialog(manga, continueInfo, sources) {
@@ -2496,11 +2900,11 @@ class MangaReader {
 
     async selectMangaFromSource(manga, source) {
         this.currentManga = manga;
-        this.currentSource = source;
+        this.currentSource = source.parserName;
         this.showLoading('Loading chapters...');
 
         try {
-            const chapters = await window.mangaAPI.getChapters(source.url, source.source);
+            const chapters = await window.mangaAPI.getChapters(source.url, source.parserName);
 
             // Add to last read
             await window.mangaAPI.addToLastRead(manga);

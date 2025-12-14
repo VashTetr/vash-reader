@@ -88,6 +88,7 @@ class ContentFilter {
             manga.title || '',
             manga.description || '',
             ...(manga.tags || []),
+            ...(manga.genres || []),
             manga.author || '',
             manga.status || ''
         ].join(' ').toLowerCase();

@@ -230,6 +230,15 @@ ipcMain.handle('find-manga-sources', async (event, mangaTitle, mangaUrl = null) 
     }
 });
 
+ipcMain.handle('get-manga-details', async (event, mangaUrl) => {
+    try {
+        return await comickParser.getMangaDetails(mangaUrl);
+    } catch (error) {
+        console.error('Get manga details error:', error);
+        return { error: error.message };
+    }
+});
+
 // Follow system handlers
 ipcMain.handle('add-to-follows', async (event, manga) => {
     try {

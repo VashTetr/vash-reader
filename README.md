@@ -15,10 +15,11 @@ A local Electron-based manga reader that aggregates content from various sources
 - **Clickable title** - Click "Vash Reader" to return to home page anytime
 
 ### 📚 **Reading Experience**
-- **Multi-source search** - MangaDex, Mangakakalot, Manganato
+- **Multi-source search** - MangaDx, Mangakakalot, Manganato
 - **Advanced search** - Filter by genre, type, demographics, status, year, and more using Comick API
 - **Chapter browsing** - View all available chapters
 - **Page reader** - Clean reading interface with navigation
+- **Smart back navigation** - Back button in reader remembers your path (search → details → chapters → reader)
 - **Progress tracking** - Automatically saves reading progress
 - **Keyboard shortcuts** - Arrow keys for navigation, Escape to go back
 

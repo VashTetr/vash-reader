@@ -93,6 +93,7 @@ class MangaReader {
         addListener('backToHomeFromFollows', 'click', () => this.showHomePage());
         addListener('backToHomeFromNotifications', 'click', () => this.showHomePage());
         addListener('backToSearchResults', 'click', () => this.goBack());
+        addListener('backFromReader', 'click', () => this.goBackFromReader());
 
         // Header buttons
         addListener('followsBtn', 'click', () => this.showFollowsPage());
@@ -983,7 +984,7 @@ class MangaReader {
         return item;
     }
 
-    async readChapter(chapter) {
+    async readChapter(chapter, fromPage = 'chapterList') {
         // Ensure chapter has correct index if not already set
         if (chapter.index === undefined && this.allChapters) {
             const chapterIndex = this.allChapters.findIndex(ch => ch.id === chapter.id);
@@ -1010,7 +1011,7 @@ class MangaReader {
             // Add to last read with current chapter
             await window.mangaAPI.addToLastRead(this.currentManga, chapter);
 
-            await this.displayReader();
+            await this.displayReader(fromPage);
 
             // Scroll to top of the page when loading a new chapter
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1019,14 +1020,14 @@ class MangaReader {
         }
     }
 
-    async displayReader() {
+    async displayReader(fromPage = 'chapterList') {
         if (this.currentPages.length === 0) {
             this.showError('No pages available');
             return;
         }
 
         await this.updateReaderDisplay();
-        this.showReader();
+        this.showReader(fromPage);
         this.hideLoading(); // Hide loading after pages are displayed
     }
 
@@ -1620,7 +1621,10 @@ class MangaReader {
         this.hideLoading();
     }
 
-    showReader() {
+    showReader(fromPage = 'chapterList') {
+        // Add current page to navigation history
+        this.navigationHistory.push(fromPage);
+
         this.hideAllViews();
         document.getElementById('reader').classList.remove('hidden');
     }
@@ -1979,6 +1983,49 @@ class MangaReader {
         } else {
             // No history, default to home page
             this.showHomePage();
+        }
+    }
+
+    goBackFromReader() {
+        // Go back from reader - should go to chapter list or manga details
+        if (this.navigationHistory.length > 0) {
+            const previousPage = this.navigationHistory.pop();
+
+            switch (previousPage) {
+                case 'chapterList':
+                    this.showChapterList();
+                    break;
+                case 'mangaDetails':
+                    this.showMangaDetails(this.currentManga, this.currentContinueInfo);
+                    break;
+                case 'home':
+                    this.showHomePage();
+                    break;
+                case 'search':
+                    this.showSearchResults();
+                    break;
+                case 'follows':
+                    this.showFollowsPage();
+                    break;
+                case 'notifications':
+                    this.showNotificationsPage();
+                    break;
+                default:
+                    // Fallback to chapter list if we have current manga, otherwise home
+                    if (this.currentManga && this.allChapters) {
+                        this.showChapterList();
+                    } else {
+                        this.showHomePage();
+                    }
+                    break;
+            }
+        } else {
+            // No history, try to go to chapter list if we have current manga, otherwise home
+            if (this.currentManga && this.allChapters) {
+                this.showChapterList();
+            } else {
+                this.showHomePage();
+            }
         }
     }
 
@@ -2551,8 +2598,8 @@ class MangaReader {
                     chapterToRead.index = chapterIndex;
                 }
 
-                // Read the chapter
-                await this.readChapter(chapterToRead);
+                // Read the chapter (coming from follows page)
+                await this.readChapter(chapterToRead, 'follows');
             } else {
                 // Chapter not found, show chapter list instead
                 this.showError(`Chapter ${targetChapter} not found. Showing all chapters.`);
@@ -2677,8 +2724,8 @@ class MangaReader {
                     chapterToRead.index = chapterIndex;
                 }
 
-                // Read the chapter
-                await this.readChapter(chapterToRead);
+                // Read the chapter (coming from home page last read)
+                await this.readChapter(chapterToRead, 'home');
             } else {
                 // This should rarely happen now, but just in case
                 this.showError(`No suitable chapter found. Showing all chapters.`);
@@ -2843,7 +2890,7 @@ class MangaReader {
                 try {
                     const chapters = await window.mangaAPI.getChapters(followedManga.url, followedManga.source);
                     if (chapters.length > 0) {
-                        await this.readChapter(chapters[0]); // Start from first chapter
+                        await this.readChapter(chapters[0], 'follows'); // Start from first chapter
                     } else {
                         this.showError('No chapters found for this manga');
                     }
@@ -2941,7 +2988,7 @@ class MangaReader {
                     try {
                         const chapters = await window.mangaAPI.getChapters(manga.url, sourceName);
                         if (chapters.length > 0) {
-                            await this.readChapter(chapters[0]);
+                            await this.readChapter(chapters[0], 'mangaDetails');
                         } else {
                             this.showError('No chapters found for this manga');
                         }

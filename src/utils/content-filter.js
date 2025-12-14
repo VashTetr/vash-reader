@@ -1,5 +1,10 @@
 class ContentFilter {
     constructor() {
+        // HARD BLOCKED CONTENT - Never allow these under any circumstances
+        this.blockedContent = [
+            'loli', 'lolicon', 'shotacon', 'shota'
+        ];
+
         // Adult content keywords and patterns
         this.adultKeywords = [
             // Explicit terms
@@ -52,8 +57,32 @@ class ContentFilter {
         return this.isEnabled;
     }
 
+    // Check for content that should NEVER be shown regardless of filter settings
+    isBlockedContent(manga) {
+        if (!manga) return false;
+
+        const textToCheck = [
+            manga.title || '',
+            manga.description || '',
+            ...(manga.tags || []),
+            ...(manga.genres || []),
+            manga.author || '',
+            manga.status || ''
+        ].join(' ').toLowerCase();
+
+        // Hard block: Never allow loli content
+        return this.blockedContent.some(blocked =>
+            textToCheck.includes(blocked.toLowerCase())
+        );
+    }
+
     isAdultContent(manga) {
         if (!manga) return false;
+
+        // First check if it's blocked content (always return true for blocked)
+        if (this.isBlockedContent(manga)) {
+            return true;
+        }
 
         const textToCheck = [
             manga.title || '',

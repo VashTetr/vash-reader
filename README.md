@@ -16,6 +16,7 @@ A local Electron-based manga reader that aggregates content from various sources
 
 ### 📚 **Reading Experience**
 - **Multi-source search** - MangaDex, Mangakakalot, Manganato
+- **Advanced search** - Filter by genre, type, demographics, status, year, and more using Comick API
 - **Chapter browsing** - View all available chapters
 - **Page reader** - Clean reading interface with navigation
 - **Progress tracking** - Automatically saves reading progress
@@ -144,8 +145,17 @@ class NewSiteParser extends BaseParser {
 
 1. **Home Page** - Browse popular, recent, and continue reading
 2. **Search** - Find manga across all sources
-3. **Read** - Automatic progress tracking and history
-4. **Navigate** - Use arrows, keyboard, or click to navigate
+3. **Advanced Search** - Click "🔍 Advanced" for detailed filtering:
+   - **Genres** - Include/exclude specific genres
+   - **Demographics** - Shounen, Shoujo, Seinen, Josei
+   - **Type** - Manga, Manhwa, Manhua
+   - **Status** - Ongoing, Completed, Cancelled, Hiatus
+   - **Content Rating** - Safe, Suggestive, Erotica
+   - **Year Range** - Filter by publication year
+   - **Country** - Japan, Korea, China
+   - **Sort Options** - Rating, popularity, newest, etc.
+4. **Read** - Automatic progress tracking and history
+5. **Navigate** - Use arrows, keyboard, or click to navigate
 
 ## 🔒 Privacy
 

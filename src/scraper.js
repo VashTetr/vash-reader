@@ -15,11 +15,56 @@ class MangaScraper {
         }
     }
 
-    async searchBySource(query, sourceName) {
+    async searchBySource(query, sourceName, page = 1, limit = 50) {
         try {
-            return await this.parserManager.searchBySource(query, sourceName);
+            return await this.parserManager.searchBySource(query, sourceName, page, limit);
         } catch (error) {
             console.error(`Search failed for ${sourceName}:`, error);
+            return [];
+        }
+    }
+
+    async advancedSearch(filters) {
+        try {
+            // Use Comick parser for advanced search since it has the most comprehensive API
+            const comickParser = this.parserManager.parsers.find(p => p.name === 'Comick');
+            if (!comickParser || !comickParser.advancedSearch) {
+                throw new Error('Advanced search not available');
+            }
+
+            return await comickParser.advancedSearch(filters);
+        } catch (error) {
+            console.error('Advanced search failed:', error);
+            return [];
+        }
+    }
+
+    async getGenres() {
+        try {
+            // Use Comick parser for genres
+            const comickParser = this.parserManager.parsers.find(p => p.name === 'Comick');
+            if (!comickParser || !comickParser.getGenres) {
+                throw new Error('Genres not available');
+            }
+
+            return await comickParser.getGenres();
+        } catch (error) {
+            console.error('Get genres failed:', error);
+            return [];
+        }
+    }
+
+    async getCategories() {
+        try {
+            // Use Comick parser for categories/tags
+            const comickParser = this.parserManager.parsers.find(p => p.name === 'Comick');
+            if (!comickParser || !comickParser.getCategories) {
+                throw new Error('Categories not available');
+            }
+
+            return await comickParser.getCategories();
+        } catch (error) {
+            console.error('Get categories failed:', error);
             return [];
         }
     }

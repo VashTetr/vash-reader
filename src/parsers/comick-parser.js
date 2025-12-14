@@ -437,9 +437,13 @@ class ComickParser extends BaseParser {
     }
 
     // Search method using real Comick API
-    async search(query) {
+    async search(query, page = 1, limit = 100) {
         try {
-            const url = `${this.baseUrl}/v1.0/search/?q=${encodeURIComponent(query)}&page=1&limit=20`;
+            // API limits: page max 50, limit max 300
+            // Note: When using 'q' parameter, other filters may be ignored
+            const safePage = Math.min(page, 50);
+            const safeLimit = Math.min(limit, 300);
+            const url = `${this.baseUrl}/v1.0/search/?q=${encodeURIComponent(query)}&page=${safePage}&limit=${safeLimit}`;
             const data = await this.fetchJson(url);
 
             const results = [];
@@ -462,6 +466,16 @@ class ComickParser extends BaseParser {
                         }
                     }
 
+                    // Hard filter: Skip any manga with loli content
+                    const hasInappropriateContent = [
+                        title.toLowerCase(),
+                        (comic.desc || comic.description || '').toLowerCase()
+                    ].some(text => text.includes('loli'));
+
+                    if (hasInappropriateContent) {
+                        continue; // Skip this manga entirely
+                    }
+
                     results.push({
                         id: comic.slug || comic.hid,
                         title: title,
@@ -473,9 +487,230 @@ class ComickParser extends BaseParser {
                 }
             }
 
-            return results;
+            // Deduplicate results by slug/id and title
+            return this.deduplicateResults(results);
         } catch (error) {
             console.error('Comick search error:', error);
+            return [];
+        }
+    }
+
+    // Advanced search with filters
+    async advancedSearch(filters = {}) {
+        try {
+            const params = new URLSearchParams();
+
+            // Basic search query
+            if (filters.query) {
+                params.append('q', filters.query);
+            }
+
+            // Pagination (API limits: page max 50, limit max 300)
+            const page = Math.min(filters.page || 1, 50);
+            const limit = Math.min(filters.limit || 100, 300);
+            params.append('page', page);
+            params.append('limit', limit);
+
+            // Genres (include)
+            if (filters.genres && filters.genres.length > 0) {
+                filters.genres.forEach(genre => params.append('genres', genre));
+            }
+
+            // Excluded genres
+            if (filters.excludedGenres && filters.excludedGenres.length > 0) {
+                filters.excludedGenres.forEach(genre => params.append('excludes', genre));
+            }
+
+            // Tags (include)
+            if (filters.tags && filters.tags.length > 0) {
+                filters.tags.forEach(tag => params.append('tags', tag));
+            }
+
+            // Excluded tags
+            if (filters.excludedTags && filters.excludedTags.length > 0) {
+                filters.excludedTags.forEach(tag => params.append('excluded-tags', tag));
+            }
+
+            // Demographics (1=shounen, 2=shoujo, 3=seinen, 4=josei, 5=none)
+            if (filters.demographics && filters.demographics.length > 0) {
+                filters.demographics.forEach(demo => params.append('demographic', demo));
+            }
+
+            // Country (kr, jp, cn, etc.)
+            if (filters.countries && filters.countries.length > 0) {
+                filters.countries.forEach(country => params.append('country', country));
+            }
+
+            // Status (1=Ongoing, 2=Completed, 3=Cancelled, 4=Hiatus)
+            if (filters.status) {
+                params.append('status', filters.status);
+            }
+
+            // Content rating (safe, suggestive, erotica, pornographic)
+            if (filters.contentRating && filters.contentRating.length > 0) {
+                filters.contentRating.forEach(rating => params.append('content_rating', rating));
+            }
+
+            // Year range
+            if (filters.fromYear) {
+                params.append('from', filters.fromYear);
+            }
+            if (filters.toYear) {
+                params.append('to', filters.toYear);
+            }
+
+            // Minimum chapters
+            if (filters.minChapters) {
+                params.append('minimum', filters.minChapters);
+            }
+
+            // Sort options (view, created_at, uploaded, rating, follow, user_follow_count)
+            if (filters.sort) {
+                params.append('sort', filters.sort);
+            }
+
+            // Completed translation
+            if (filters.completedTranslation !== undefined) {
+                params.append('completed', filters.completedTranslation);
+            }
+
+            // Show all (include comics without chapters)
+            if (filters.showAll !== undefined) {
+                params.append('showall', filters.showAll);
+            }
+
+            const url = `${this.baseUrl}/v1.0/search/?${params.toString()}`;
+            console.log('Advanced search URL:', url);
+
+            const data = await this.fetchJson(url);
+            const results = [];
+
+            if (data && Array.isArray(data)) {
+                for (const comic of data) {
+                    // Get cover image from md_covers array
+                    let coverUrl = null;
+                    if (comic.md_covers && comic.md_covers.length > 0) {
+                        const cover = comic.md_covers[0];
+                        coverUrl = `https://meo.comick.pictures/${cover.b2key}`;
+                    }
+
+                    // Get English title from md_titles
+                    let title = comic.title;
+                    if (comic.md_titles && comic.md_titles.length > 0) {
+                        const englishTitle = comic.md_titles.find(t => t.lang === 'en');
+                        if (englishTitle) {
+                            title = englishTitle.title;
+                        }
+                    }
+
+                    // Get additional metadata
+                    const genres = comic.md_comic_md_genres ?
+                        comic.md_comic_md_genres.map(g => g.md_genres?.name || g.name).filter(Boolean) : [];
+
+                    const tags = comic.md_comic_md_tags ?
+                        comic.md_comic_md_tags.map(t => t.md_tags?.name || t.name).filter(Boolean) : [];
+
+                    // Hard filter: Skip any manga with loli content
+                    const hasInappropriateContent = [
+                        title.toLowerCase(),
+                        (comic.desc || comic.description || '').toLowerCase(),
+                        ...genres.map(g => g.toLowerCase()),
+                        ...tags.map(t => t.toLowerCase())
+                    ].some(text => text.includes('loli'));
+
+                    if (hasInappropriateContent) {
+                        continue; // Skip this manga entirely
+                    }
+
+                    results.push({
+                        id: comic.slug || comic.hid,
+                        title: title,
+                        url: `https://comick.io/comic/${comic.slug}`,
+                        coverUrl: coverUrl,
+                        description: comic.desc || comic.description || '',
+                        source: this.name,
+                        rating: comic.rating,
+                        follows: comic.follow_count || comic.user_follow_count,
+                        status: comic.status,
+                        year: comic.year,
+                        country: comic.country,
+                        genres: genres,
+                        tags: tags,
+                        demographic: comic.demographic,
+                        contentRating: comic.content_rating,
+                        chapterCount: comic.chapter_count || comic.last_chapter
+                    });
+                }
+            }
+
+            // Deduplicate results by slug/id and title
+            return this.deduplicateResults(results);
+        } catch (error) {
+            console.error('Comick advanced search error:', error);
+            return [];
+        }
+    }
+
+    // Get available genres
+    async getGenres() {
+        try {
+            const url = `${this.baseUrl}/genre/`;
+            const data = await this.fetchJson(url);
+
+            if (data && Array.isArray(data)) {
+                return data
+                    .filter(genre =>
+                        genre &&
+                        genre.name &&
+                        genre.name !== 'undefined' &&
+                        genre.name.trim() !== '' &&
+                        (genre.slug || genre.id) &&
+                        // Hard filter: Never include loli content
+                        !genre.name.toLowerCase().includes('loli') &&
+                        !genre.slug?.toLowerCase().includes('loli')
+                    )
+                    .map(genre => ({
+                        id: genre.slug || genre.id,
+                        name: genre.name.trim(),
+                        slug: genre.slug
+                    }));
+            }
+
+            return [];
+        } catch (error) {
+            console.error('Comick getGenres error:', error);
+            return [];
+        }
+    }
+
+    // Get available categories/tags
+    async getCategories() {
+        try {
+            const url = `${this.baseUrl}/category/`;
+            const data = await this.fetchJson(url);
+
+            if (data && Array.isArray(data)) {
+                return data
+                    .filter(category =>
+                        category &&
+                        category.name &&
+                        category.name !== 'undefined' &&
+                        category.name.trim() !== '' &&
+                        (category.slug || category.id) &&
+                        // Hard filter: Never include loli content
+                        !category.name.toLowerCase().includes('loli') &&
+                        !category.slug?.toLowerCase().includes('loli')
+                    )
+                    .map(category => ({
+                        id: category.slug || category.id,
+                        name: category.name.trim(),
+                        slug: category.slug
+                    }));
+            }
+
+            return [];
+        } catch (error) {
+            console.error('Comick getCategories error:', error);
             return [];
         }
     }
@@ -672,6 +907,30 @@ class ComickParser extends BaseParser {
         }
 
         return titles;
+    }
+
+    // Deduplicate results to prevent duplicate manga entries
+    deduplicateResults(results) {
+        const seen = new Map();
+        const deduplicated = [];
+
+        for (const manga of results) {
+            // Use slug as primary key, fallback to normalized title
+            const primaryKey = manga.id || manga.slug;
+            const normalizedTitle = manga.title.toLowerCase().trim().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
+
+            // Check both slug and title for duplicates
+            const slugKey = `slug:${primaryKey}`;
+            const titleKey = `title:${normalizedTitle}`;
+
+            if (!seen.has(slugKey) && !seen.has(titleKey)) {
+                seen.set(slugKey, manga);
+                seen.set(titleKey, manga);
+                deduplicated.push(manga);
+            }
+        }
+
+        return deduplicated;
     }
 
 

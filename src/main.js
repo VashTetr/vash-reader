@@ -67,11 +67,38 @@ ipcMain.handle('search-manga', async (event, query) => {
     }
 });
 
-ipcMain.handle('search-by-source', async (event, query, source) => {
+ipcMain.handle('search-by-source', async (event, query, source, page = 1, limit = 50) => {
     try {
-        return await mangaScraper.searchBySource(query, source);
+        return await mangaScraper.searchBySource(query, source, page, limit);
     } catch (error) {
         console.error('Search by source error:', error);
+        return { error: error.message };
+    }
+});
+
+ipcMain.handle('advanced-search', async (event, filters) => {
+    try {
+        return await mangaScraper.advancedSearch(filters);
+    } catch (error) {
+        console.error('Advanced search error:', error);
+        return { error: error.message };
+    }
+});
+
+ipcMain.handle('get-genres', async (event) => {
+    try {
+        return await mangaScraper.getGenres();
+    } catch (error) {
+        console.error('Get genres error:', error);
+        return { error: error.message };
+    }
+});
+
+ipcMain.handle('get-categories', async (event) => {
+    try {
+        return await mangaScraper.getCategories();
+    } catch (error) {
+        console.error('Get categories error:', error);
         return { error: error.message };
     }
 });

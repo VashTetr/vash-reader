@@ -3,7 +3,10 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('mangaAPI', {
     // Search and reading
     searchManga: (query) => ipcRenderer.invoke('search-manga', query),
-    searchBySource: (query, source) => ipcRenderer.invoke('search-by-source', query, source),
+    searchBySource: (query, source, page, limit) => ipcRenderer.invoke('search-by-source', query, source, page, limit),
+    advancedSearch: (filters) => ipcRenderer.invoke('advanced-search', filters),
+    getGenres: () => ipcRenderer.invoke('get-genres'),
+    getCategories: () => ipcRenderer.invoke('get-categories'),
     getChapters: (mangaUrl, source) => ipcRenderer.invoke('get-chapters', mangaUrl, source),
     getPages: (chapterUrl, source) => ipcRenderer.invoke('get-pages', chapterUrl, source),
     resolvePageUrl: (pageUrl, source) => ipcRenderer.invoke('resolve-page-url', pageUrl, source),

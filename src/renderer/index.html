@@ -14,6 +14,7 @@
             <div class="search-container">
                 <input type="text" id="searchInput" placeholder="Search manga...">
                 <button id="searchBtn">Search</button>
+                <button id="advancedSearchBtn" class="advanced-search-btn">🔍 Advanced</button>
             </div>
             <div class="header-buttons">
                 <button id="followsBtn" class="header-btn">Following</button>
@@ -184,6 +185,132 @@
                 </div>
             </div>
         </footer>
+    </div>
+
+    <!-- Advanced Search Modal -->
+    <div id="advancedSearchModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Advanced Search</h2>
+                <button id="closeAdvancedSearch" class="close-btn">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="advancedSearchForm">
+                    <!-- Basic Search -->
+                    <div class="form-group">
+                        <label for="advancedQuery">Title Search:</label>
+                        <input type="text" id="advancedQuery" placeholder="Enter manga title...">
+                    </div>
+
+                    <!-- Type/Format -->
+                    <div class="form-group">
+                        <label>Type:</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" name="type" value="manga"> Manga</label>
+                            <label><input type="checkbox" name="type" value="manhwa"> Manhwa</label>
+                            <label><input type="checkbox" name="type" value="manhua"> Manhua</label>
+                        </div>
+                    </div>
+
+                    <!-- Demographics -->
+                    <div class="form-group">
+                        <label>Demographics:</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" name="demographic" value="1"> Shounen</label>
+                            <label><input type="checkbox" name="demographic" value="2"> Shoujo</label>
+                            <label><input type="checkbox" name="demographic" value="3"> Seinen</label>
+                            <label><input type="checkbox" name="demographic" value="4"> Josei</label>
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="form-group">
+                        <label for="status">Status:</label>
+                        <select id="status">
+                            <option value="">Any</option>
+                            <option value="1">Ongoing</option>
+                            <option value="2">Completed</option>
+                            <option value="3">Cancelled</option>
+                            <option value="4">Hiatus</option>
+                        </select>
+                    </div>
+
+                    <!-- Content Rating -->
+                    <div class="form-group">
+                        <label>Content Rating:</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" name="contentRating" value="safe"> Safe</label>
+                            <label><input type="checkbox" name="contentRating" value="suggestive"> Suggestive</label>
+                            <label><input type="checkbox" name="contentRating" value="erotica"> Erotica</label>
+                        </div>
+                    </div>
+
+                    <!-- Country -->
+                    <div class="form-group">
+                        <label>Country:</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" name="country" value="jp"> Japan</label>
+                            <label><input type="checkbox" name="country" value="kr"> Korea</label>
+                            <label><input type="checkbox" name="country" value="cn"> China</label>
+                        </div>
+                    </div>
+
+                    <!-- Year Range -->
+                    <div class="form-group">
+                        <label>Year Range:</label>
+                        <div class="year-range">
+                            <input type="number" id="fromYear" placeholder="From" min="1900" max="2030">
+                            <span>to</span>
+                            <input type="number" id="toYear" placeholder="To" min="1900" max="2030">
+                        </div>
+                    </div>
+
+                    <!-- Minimum Chapters -->
+                    <div class="form-group">
+                        <label for="minChapters">Minimum Chapters:</label>
+                        <input type="number" id="minChapters" min="0" placeholder="0">
+                    </div>
+
+                    <!-- Genres -->
+                    <div class="form-group">
+                        <label>Genres (Include):</label>
+                        <input type="text" id="genreSearch" class="genre-search" placeholder="🔍 Search genres...">
+                        <div id="genresContainer" class="genres-container">
+                            <div class="loading">Loading genres...</div>
+                        </div>
+                    </div>
+
+                    <!-- Excluded Genres -->
+                    <div class="form-group">
+                        <label>Exclude Genres:</label>
+                        <input type="text" id="excludedGenreSearch" class="genre-search"
+                            placeholder="🔍 Search genres to exclude...">
+                        <div id="excludedGenresContainer" class="genres-container">
+                            <div class="loading">Loading genres...</div>
+                        </div>
+                    </div>
+
+                    <!-- Sort -->
+                    <div class="form-group">
+                        <label for="sort">Sort by:</label>
+                        <select id="sort">
+                            <option value="">Relevance</option>
+                            <option value="rating">Rating</option>
+                            <option value="follow">Most Followed</option>
+                            <option value="view">Most Viewed</option>
+                            <option value="created_at">Newest</option>
+                            <option value="uploaded">Recently Updated</option>
+                        </select>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="form-actions">
+                        <button type="button" id="clearAdvancedSearch">Clear All</button>
+                        <button type="submit" id="submitAdvancedSearch">Search</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <script src="../utils/content-filter.js"></script>

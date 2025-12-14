@@ -14,6 +14,13 @@ class MangaReader {
         this.currentTrendingPage = 0;
         this.currentNewFollowPage = 0;
 
+        // Search pagination
+        this.currentSearchQuery = '';
+        this.currentSearchFilters = null;
+        this.currentSearchPage = 1;
+        this.isLoadingMore = false;
+        this.hasMoreResults = true;
+
         // Initialize content filter
         this.contentFilter = new ContentFilter();
 
@@ -63,6 +70,15 @@ class MangaReader {
         addListener('searchInput', 'keypress', (e) => {
             if (e.key === 'Enter') this.searchManga();
         });
+        addListener('advancedSearchBtn', 'click', () => this.showAdvancedSearch());
+        addListener('closeAdvancedSearch', 'click', () => this.hideAdvancedSearch());
+        addListener('advancedSearchForm', 'submit', (e) => {
+            e.preventDefault();
+            this.performAdvancedSearch();
+        });
+        addListener('clearAdvancedSearch', 'click', () => this.clearAdvancedSearchForm());
+        addListener('genreSearch', 'input', (e) => this.filterGenres('genresContainer', e.target.value));
+        addListener('excludedGenreSearch', 'input', (e) => this.filterGenres('excludedGenresContainer', e.target.value));
 
         // Navigation
         addListener('homeTitle', 'click', () => this.showHomePage());
@@ -130,14 +146,226 @@ class MangaReader {
         const query = document.getElementById('searchInput').value.trim();
         if (!query) return;
 
+        // Reset pagination for new search
+        this.currentSearchQuery = query;
+        this.currentSearchFilters = null;
+        this.currentSearchPage = 1;
+        this.hasMoreResults = true;
+
         this.showLoading('Searching...');
 
         try {
-            // Use Comick search for main search (as requested)
-            const comickResults = await window.mangaAPI.searchBySource(query, 'Comick');
-            await this.displaySearchResults(comickResults, query);
+            // Use Comick search for main search with pagination
+            const comickResults = await window.mangaAPI.searchBySource(query, 'Comick', 1, 100);
+            await this.displaySearchResults(comickResults, query, true); // true = new search
         } catch (error) {
             this.showError('Search failed: ' + error.message);
+        }
+    }
+
+    async showAdvancedSearch() {
+        const modal = document.getElementById('advancedSearchModal');
+        modal.classList.remove('hidden');
+
+        // Load genres and categories if not already loaded
+        await this.loadGenresAndCategories();
+    }
+
+    hideAdvancedSearch() {
+        const modal = document.getElementById('advancedSearchModal');
+        modal.classList.add('hidden');
+    }
+
+    async loadGenresAndCategories() {
+        try {
+            // Load genres for both include and exclude containers
+            const [genres, categories] = await Promise.all([
+                window.mangaAPI.getGenres(),
+                window.mangaAPI.getCategories()
+            ]);
+
+            // Combine genres and categories, filter out invalid entries and inappropriate content
+            this.allGenres = [...genres, ...categories]
+                .filter(genre =>
+                    genre &&
+                    genre.name &&
+                    genre.name !== 'undefined' &&
+                    genre.name.trim() !== '' &&
+                    (genre.slug || genre.id) &&
+                    // Hard filter: Never include loli content
+                    !genre.name.toLowerCase().includes('loli') &&
+                    !genre.slug?.toLowerCase().includes('loli')
+                )
+                .sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically
+
+            // Populate both containers
+            this.populateGenreContainer('genresContainer', 'genre');
+            this.populateGenreContainer('excludedGenresContainer', 'excludedGenre');
+
+        } catch (error) {
+            console.error('Failed to load genres:', error);
+            document.getElementById('genresContainer').innerHTML = '<div class="loading">Failed to load genres</div>';
+            document.getElementById('excludedGenresContainer').innerHTML = '<div class="loading">Failed to load genres</div>';
+        }
+    }
+
+    populateGenreContainer(containerId, inputName, filteredGenres = null) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+
+        const genresToShow = filteredGenres || this.allGenres || [];
+
+        if (genresToShow.length === 0) {
+            container.innerHTML = '<div class="no-results">No genres found</div>';
+            return;
+        }
+
+        genresToShow.forEach(genre => {
+            const genreItem = document.createElement('div');
+            genreItem.className = 'genre-item';
+            genreItem.innerHTML = `
+                <label>
+                    <input type="checkbox" name="${inputName}" value="${genre.slug || genre.id}">
+                    ${genre.name}
+                </label>
+            `;
+            container.appendChild(genreItem);
+        });
+    }
+
+    filterGenres(containerId, searchTerm) {
+        if (!this.allGenres) return;
+
+        const inputName = containerId === 'genresContainer' ? 'genre' : 'excludedGenre';
+
+        if (!searchTerm.trim()) {
+            // Show all genres if search is empty
+            this.populateGenreContainer(containerId, inputName);
+            return;
+        }
+
+        // Filter genres based on search term
+        const filteredGenres = this.allGenres.filter(genre =>
+            genre.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+        this.populateGenreContainer(containerId, inputName, filteredGenres);
+    }
+
+    async performAdvancedSearch() {
+        try {
+            this.hideAdvancedSearch();
+            this.showLoading('Searching with filters...');
+
+            // Collect form data
+            const filters = this.collectAdvancedSearchFilters();
+
+            // Reset pagination for new search
+            this.currentSearchQuery = '';
+            this.currentSearchFilters = filters;
+            this.currentSearchPage = 1;
+            this.hasMoreResults = true;
+
+            console.log('Advanced search filters:', filters);
+
+            // Perform search
+            const results = await window.mangaAPI.advancedSearch(filters);
+
+            // Display results
+            await this.displaySearchResults(results, filters.query || 'Advanced Search', true); // true = new search
+
+        } catch (error) {
+            console.error('Advanced search failed:', error);
+            this.showError('Advanced search failed: ' + error.message);
+        }
+    }
+
+    collectAdvancedSearchFilters() {
+        const filters = {};
+
+        // Basic query
+        const query = document.getElementById('advancedQuery').value.trim();
+        if (query) filters.query = query;
+
+        // Type checkboxes
+        const types = Array.from(document.querySelectorAll('input[name="type"]:checked'))
+            .map(cb => cb.value);
+        if (types.length > 0) filters.comic_types = types;
+
+        // Demographics
+        const demographics = Array.from(document.querySelectorAll('input[name="demographic"]:checked'))
+            .map(cb => parseInt(cb.value));
+        if (demographics.length > 0) filters.demographics = demographics;
+
+        // Status
+        const status = document.getElementById('status').value;
+        if (status) filters.status = parseInt(status);
+
+        // Content rating
+        const contentRating = Array.from(document.querySelectorAll('input[name="contentRating"]:checked'))
+            .map(cb => cb.value);
+        if (contentRating.length > 0) filters.contentRating = contentRating;
+
+        // Country
+        const countries = Array.from(document.querySelectorAll('input[name="country"]:checked'))
+            .map(cb => cb.value);
+        if (countries.length > 0) filters.countries = countries;
+
+        // Year range
+        const fromYear = document.getElementById('fromYear').value;
+        const toYear = document.getElementById('toYear').value;
+        if (fromYear) filters.fromYear = parseInt(fromYear);
+        if (toYear) filters.toYear = parseInt(toYear);
+
+        // Minimum chapters
+        const minChapters = document.getElementById('minChapters').value;
+        if (minChapters) filters.minChapters = parseInt(minChapters);
+
+        // Genres (include)
+        const genres = Array.from(document.querySelectorAll('input[name="genre"]:checked'))
+            .map(cb => cb.value);
+        if (genres.length > 0) filters.genres = genres;
+
+        // Excluded genres
+        const excludedGenres = Array.from(document.querySelectorAll('input[name="excludedGenre"]:checked'))
+            .map(cb => cb.value);
+        if (excludedGenres.length > 0) filters.excludedGenres = excludedGenres;
+
+        // Sort
+        const sort = document.getElementById('sort').value;
+        if (sort) filters.sort = sort;
+
+        // Default pagination (API limits: page max 50, limit max 300)
+        filters.page = 1;
+        filters.limit = 100;
+
+        return filters;
+    }
+
+    clearAdvancedSearchForm() {
+        // Clear text inputs
+        document.getElementById('advancedQuery').value = '';
+        document.getElementById('fromYear').value = '';
+        document.getElementById('toYear').value = '';
+        document.getElementById('minChapters').value = '';
+
+        // Clear genre search inputs
+        document.getElementById('genreSearch').value = '';
+        document.getElementById('excludedGenreSearch').value = '';
+
+        // Clear select
+        document.getElementById('status').value = '';
+        document.getElementById('sort').value = '';
+
+        // Clear all checkboxes
+        document.querySelectorAll('#advancedSearchForm input[type="checkbox"]').forEach(cb => {
+            cb.checked = false;
+        });
+
+        // Reset genre containers to show all genres
+        if (this.allGenres) {
+            this.populateGenreContainer('genresContainer', 'genre');
+            this.populateGenreContainer('excludedGenresContainer', 'excludedGenre');
         }
     }
 
@@ -233,21 +461,180 @@ class MangaReader {
         return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    async displaySearchResults(results, searchQuery = '') {
+    async displaySearchResults(results, searchQuery = '', isNewSearch = false) {
         const resultsGrid = document.getElementById('resultsGrid');
-        resultsGrid.innerHTML = '';
+
+        // Clear grid only for new searches
+        if (isNewSearch) {
+            resultsGrid.innerHTML = '';
+            this.setupInfiniteScroll();
+        }
 
         if (results.length === 0) {
-            resultsGrid.innerHTML = '<p>No relevant results found. Try different keywords or check spelling.</p>';
+            if (isNewSearch) {
+                resultsGrid.innerHTML = '<p>No relevant results found. Try different keywords or check spelling.</p>';
+                this.hasMoreResults = false;
+            }
         } else {
+            // Deduplicate results based on title similarity
+            const deduplicatedResults = this.deduplicateResults(results);
+
+            console.log(`Page ${this.currentSearchPage}: Original results: ${results.length}, After deduplication: ${deduplicatedResults.length}`);
+
+            // Check if we have fewer results than requested (indicates last page)
+            // Also check if we've hit the API's page limit (50 pages max)
+            if (results.length < 100 || this.currentSearchPage >= 50) {
+                this.hasMoreResults = false;
+                if (this.currentSearchPage >= 50) {
+                    console.log('Reached Comick API page limit (50 pages max)');
+                }
+            }
+
             // Process cards sequentially to handle async createMangaCard
-            for (const manga of results) {
+            for (const manga of deduplicatedResults) {
                 const card = await this.createMangaCard(manga, searchQuery);
                 resultsGrid.appendChild(card);
             }
         }
 
+        // Show loading indicator at bottom if there are more results
+        this.updateLoadMoreIndicator();
         this.showSearchResults();
+    }
+
+    setupInfiniteScroll() {
+        // Remove existing scroll listener
+        if (this.scrollListener) {
+            window.removeEventListener('scroll', this.scrollListener);
+        }
+
+        // Add new scroll listener
+        this.scrollListener = () => {
+            if (this.isLoadingMore || !this.hasMoreResults) return;
+
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const windowHeight = window.innerHeight;
+            const documentHeight = document.documentElement.scrollHeight;
+
+            // Load more when user is 200px from bottom
+            if (scrollTop + windowHeight >= documentHeight - 200) {
+                this.loadMoreResults();
+            }
+        };
+
+        window.addEventListener('scroll', this.scrollListener);
+    }
+
+    async loadMoreResults() {
+        if (this.isLoadingMore || !this.hasMoreResults) return;
+
+        this.isLoadingMore = true;
+        this.currentSearchPage++;
+
+        try {
+            let results = [];
+
+            if (this.currentSearchFilters) {
+                // Advanced search
+                const filters = { ...this.currentSearchFilters, page: this.currentSearchPage };
+                results = await window.mangaAPI.advancedSearch(filters);
+            } else if (this.currentSearchQuery) {
+                // Regular search
+                results = await window.mangaAPI.searchBySource(this.currentSearchQuery, 'Comick', this.currentSearchPage, 100);
+            }
+
+            await this.displaySearchResults(results, this.currentSearchQuery || 'Advanced Search', false); // false = append results
+
+        } catch (error) {
+            console.error('Failed to load more results:', error);
+            this.hasMoreResults = false;
+        } finally {
+            this.isLoadingMore = false;
+            this.updateLoadMoreIndicator();
+        }
+    }
+
+    updateLoadMoreIndicator() {
+        // Remove existing indicator
+        const existingIndicator = document.getElementById('loadMoreIndicator');
+        if (existingIndicator) {
+            existingIndicator.remove();
+        }
+
+        const resultsGrid = document.getElementById('resultsGrid');
+
+        if (this.hasMoreResults) {
+            const indicator = document.createElement('div');
+            indicator.id = 'loadMoreIndicator';
+            indicator.className = 'load-more-indicator';
+            indicator.innerHTML = this.isLoadingMore ?
+                '<div class="loading-spinner">Loading more results...</div>' :
+                '<div class="scroll-hint">Scroll down for more results</div>';
+
+            resultsGrid.appendChild(indicator);
+        }
+    }
+
+    deduplicateResults(results) {
+        const seen = new Map();
+        const deduplicated = [];
+
+        for (const manga of results) {
+            // Create a normalized title for comparison
+            const normalizedTitle = this.normalizeTitle(manga.title);
+
+            // Check if we've seen this title before
+            if (!seen.has(normalizedTitle)) {
+                seen.set(normalizedTitle, manga);
+                deduplicated.push(manga);
+            } else {
+                // If we have a duplicate, keep the one with better data
+                const existing = seen.get(normalizedTitle);
+                const better = this.chooseBetterManga(existing, manga);
+
+                if (better !== existing) {
+                    // Replace the existing one
+                    const index = deduplicated.findIndex(m => m === existing);
+                    if (index !== -1) {
+                        deduplicated[index] = better;
+                        seen.set(normalizedTitle, better);
+                    }
+                }
+            }
+        }
+
+        return deduplicated;
+    }
+
+    normalizeTitle(title) {
+        return title
+            .toLowerCase()
+            .trim()
+            // Remove common variations
+            .replace(/[^\w\s]/g, '') // Remove punctuation
+            .replace(/\s+/g, ' ') // Normalize whitespace
+            .replace(/\b(the|a|an)\b/g, '') // Remove articles
+            .trim();
+    }
+
+    chooseBetterManga(manga1, manga2) {
+        // Prefer manga with more complete data
+        let score1 = 0;
+        let score2 = 0;
+
+        // Score based on available data
+        if (manga1.coverUrl) score1 += 2;
+        if (manga1.description && manga1.description.length > 50) score1 += 2;
+        if (manga1.rating) score1 += 1;
+        if (manga1.follows) score1 += 1;
+
+        if (manga2.coverUrl) score2 += 2;
+        if (manga2.description && manga2.description.length > 50) score2 += 2;
+        if (manga2.rating) score2 += 1;
+        if (manga2.follows) score2 += 1;
+
+        // Prefer the one with higher score, or the first one if tied
+        return score2 > score1 ? manga2 : manga1;
     }
 
     async createMangaCard(manga, searchQuery = '') {

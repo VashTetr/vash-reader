@@ -59,13 +59,13 @@ class ParserManager {
         return allResults;
     }
 
-    async searchBySource(query, sourceName) {
+    async searchBySource(query, sourceName, page = 1, limit = 50) {
         const parser = this.getParser(sourceName);
         if (!parser) {
             throw new Error(`Parser not found for source: ${sourceName}`);
         }
 
-        return await parser.search(query);
+        return await parser.search(query, page, limit);
     }
 
     async getChapters(mangaUrl, sourceName) {

@@ -1,3 +1,7 @@
+## Notice
+
+Btw. this is fully made with AI as kind of an experiment. just want to see what ai can do with a bit of help
+
 # Vash Reader
 
 A local Electron-based manga reader that aggregates content from various sources with a beautiful home page and reading progress tracking.

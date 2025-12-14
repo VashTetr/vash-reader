@@ -2635,9 +2635,11 @@ class MangaReader {
 
             if (matchingSource) {
                 // Continue directly with the known source
+                // Note: continueFromKnownSource will handle its own loading state
                 await this.continueFromKnownSource(manga, matchingSource);
             } else {
                 // Source not found, show source selection
+                this.hideLoading(); // Hide loading before showing dialog
                 this.showSourceSelectionForLastRead(manga, sources);
             }
         } catch (error) {
@@ -2931,6 +2933,7 @@ class MangaReader {
             }
 
             // Create source selection dialog for imported manga
+            this.hideLoading(); // Hide loading before showing dialog
             this.showImportedSourceDialog(followedManga, sources, progress);
         } catch (error) {
             this.showError('Failed to find sources: ' + error.message);
@@ -3024,6 +3027,7 @@ class MangaReader {
                 return;
             }
 
+            this.hideLoading(); // Hide loading before showing source selection
             this.showSourceSelection();
             this.displaySources(sources, manga);
         } catch (error) {
@@ -3447,6 +3451,7 @@ class MangaReader {
             }
 
             // Show source selection dialog
+            this.hideLoading(); // Hide loading before showing dialog
             this.showSourceSelectionForContinue(manga, sources);
         } catch (error) {
             this.showError('Failed to find sources: ' + error.message);

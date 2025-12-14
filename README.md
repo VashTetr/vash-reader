@@ -44,6 +44,50 @@ npm start
 npm run dev
 ```
 
+## 📦 Building Executable
+
+### **Create Portable Executable**
+
+To create a single portable .exe file that users can run without installing anything:
+
+```bash
+# Build for Windows (creates single .exe file)
+npm run build-win
+
+# Build for macOS
+npm run build-mac
+
+# Build for Linux
+npm run build-linux
+
+# Build for all platforms
+npm run build
+```
+
+**Note:** On Windows, you may need to run the build command as Administrator to avoid permission issues with symbolic links.
+
+### **Alternative: Electron Packager**
+
+For a folder-based distribution:
+
+```bash
+# Create packaged app (folder with .exe and dependencies)
+npm run pack-win
+```
+
+### **Output Files**
+
+- **Portable executable**: `dist/Vash Reader 1.0.0.exe` - Single file, ready to distribute
+- **Packaged app**: `dist/Vash Reader-win32-x64/` - Folder with executable and resources
+
+### **Distribution**
+
+The portable executable (`Vash Reader 1.0.0.exe`) is completely self-contained:
+- ✅ No installation required
+- ✅ No dependencies needed
+- ✅ Works on Windows 7+ (64-bit)
+- ✅ User data stored in `%APPDATA%/vash-reader/`
+
 ## 🏗️ Architecture
 
 ### **Kotatsu-Inspired Parser System**

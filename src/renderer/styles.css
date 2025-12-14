@@ -1,0 +1,1883 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #1a1a1a;
+    color: #fff;
+    overflow-x: hidden;
+}
+
+.app {
+    min-height: 100vh;
+}
+
+.header {
+    background: #2d2d2d;
+    padding: 1rem 2rem;
+    border-bottom: 2px solid #444;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+}
+
+.header h1 {
+    color: #ff6b6b;
+    flex-shrink: 0;
+}
+
+.clickable-title {
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.clickable-title:hover {
+    color: #ff5252;
+}
+
+.search-container {
+    display: flex;
+    gap: 0.5rem;
+    flex: 1;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+#searchInput {
+    flex: 1;
+    padding: 0.5rem;
+    border: none;
+    border-radius: 4px;
+    background: #444;
+    color: #fff;
+    font-size: 1rem;
+}
+
+#searchBtn {
+    padding: 0.5rem 1rem;
+    background: #ff6b6b;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+#searchBtn:hover {
+    background: #ff5252;
+}
+
+.main {
+    padding: 2rem;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.manga-card {
+    background: #2d2d2d;
+    border-radius: 8px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.manga-card:hover {
+    transform: translateY(-2px);
+    background: #333;
+}
+
+.manga-cover {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+
+.manga-title {
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.manga-source {
+    font-size: 0.8rem;
+    color: #ff6b6b;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.manga-description {
+    font-size: 0.9rem;
+    color: #ccc;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.back-btn {
+    background: #666;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 1rem;
+}
+
+.back-btn:hover {
+    background: #777;
+}
+
+.chapters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.chapter-item {
+    background: #2d2d2d;
+    padding: 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.chapter-item:hover {
+    background: #333;
+}
+
+.reader {
+    max-width: 100%;
+}
+
+.reader-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: #2d2d2d;
+    border-radius: 4px;
+}
+
+.navigation {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.navigation button {
+    background: #ff6b6b;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.navigation button:hover {
+    background: #ff5252;
+}
+
+.navigation button:disabled {
+    background: #666;
+    cursor: not-allowed;
+}
+
+.page-container {
+    text-align: center;
+}
+
+.manga-page {
+    max-width: 100%;
+    max-height: 90vh;
+    object-fit: contain;
+    margin-bottom: 1rem;
+}
+
+/* Home Page Styles */
+.home-page {
+    display: block;
+}
+
+.home-section {
+    margin-bottom: 3rem;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.section-header h2 {
+    margin: 0;
+    color: #fff;
+}
+
+.section-nav {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.nav-btn {
+    background: #444;
+    color: white;
+    border: none;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.2s;
+}
+
+.nav-btn:hover {
+    background: #555;
+}
+
+.nav-btn:disabled {
+    background: #333;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.horizontal-grid {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    scroll-behavior: smooth;
+}
+
+.horizontal-grid::-webkit-scrollbar {
+    height: 6px;
+}
+
+.horizontal-grid::-webkit-scrollbar-track {
+    background: #333;
+    border-radius: 3px;
+}
+
+.horizontal-grid::-webkit-scrollbar-thumb {
+    background: #666;
+    border-radius: 3px;
+}
+
+.horizontal-grid::-webkit-scrollbar-thumb:hover {
+    background: #777;
+}
+
+.home-manga-card {
+    flex: 0 0 150px;
+    background: #2d2d2d;
+    border-radius: 8px;
+    padding: 0.75rem;
+    padding-bottom: 50px;
+    /* Make room for continue button */
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s;
+    position: relative;
+}
+
+.home-manga-card:hover {
+    transform: translateY(-2px);
+    background: #333;
+}
+
+.home-manga-cover {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+
+.home-manga-title {
+    font-size: 0.9rem;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.home-manga-source {
+    font-size: 0.7rem;
+    color: #ff6b6b;
+    margin-bottom: 0.25rem;
+}
+
+.home-manga-chapter {
+    font-size: 0.8rem;
+    color: #ccc;
+}
+
+.recent-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.recent-item {
+    background: #2d2d2d;
+    border-radius: 8px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    gap: 1rem;
+}
+
+.recent-item:hover {
+    background: #333;
+}
+
+.recent-cover {
+    width: 60px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.recent-info {
+    flex: 1;
+}
+
+.recent-title {
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.recent-chapter {
+    color: #ff6b6b;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+.recent-source {
+    color: #ccc;
+    font-size: 0.8rem;
+}
+
+/* Source Selection Styles */
+.source-selection {
+    display: block;
+}
+
+.source-selection-subtitle {
+    color: #ccc;
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+}
+
+.sources-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.continue-reading-btn {
+    background: linear-gradient(135deg, #ff6b6b, #ff5252);
+    border-radius: 12px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: none;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    grid-column: 1 / -1;
+    margin-bottom: 1rem;
+}
+
+.continue-reading-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+}
+
+.continue-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.continue-text {
+    flex: 1;
+}
+
+.continue-title {
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.continue-details {
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+/* Continue Dialog */
+.continue-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.continue-dialog-content {
+    background: #2d2d2d;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.continue-dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #444;
+}
+
+.continue-dialog-header h3 {
+    margin: 0;
+    color: #ff6b6b;
+    font-size: 1.3rem;
+}
+
+.continue-dialog-close {
+    background: none;
+    border: none;
+    color: #ccc;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.continue-dialog-close:hover {
+    background: #444;
+    color: white;
+}
+
+.continue-dialog-body {
+    padding: 1.5rem;
+}
+
+.continue-option {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: #333;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.continue-option .continue-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.continue-option .continue-text {
+    flex: 1;
+}
+
+.continue-option .continue-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+    color: #fff;
+}
+
+.continue-option .continue-details {
+    font-size: 0.9rem;
+    color: #ccc;
+}
+
+.continue-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.continue-btn,
+.browse-btn {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 140px;
+}
+
+.continue-btn {
+    background: linear-gradient(135deg, #ff6b6b, #ff5252);
+    color: white;
+}
+
+.continue-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+}
+
+.browse-btn {
+    background: #444;
+    color: white;
+}
+
+.browse-btn:hover {
+    background: #555;
+    transform: translateY(-1px);
+}
+
+
+
+.source-card {
+    background: #2d2d2d;
+    border-radius: 8px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s;
+    border: 2px solid transparent;
+}
+
+.source-card:hover {
+    transform: translateY(-2px);
+    background: #333;
+    border-color: #ff6b6b;
+}
+
+.source-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.source-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #ff6b6b;
+}
+
+.source-chapters {
+    background: #444;
+    color: #fff;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+}
+
+.source-manga-title {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    color: #fff;
+}
+
+.source-manga-description {
+    font-size: 0.9rem;
+    color: #ccc;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.source-unavailable {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.source-unavailable:hover {
+    transform: none;
+    background: #2d2d2d;
+    border-color: transparent;
+}
+
+/* Header updates */
+.header-buttons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.header-btn {
+    background: #444;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.header-btn:hover {
+    background: #555;
+}
+
+.notification-btn {
+    position: relative;
+    font-size: 18px;
+    padding: 8px 12px;
+}
+
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ff4444;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+/* 3-dot menu */
+.manga-card,
+.home-manga-card,
+.recent-item {
+    position: relative;
+}
+
+.manga-menu {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.8);
+    border: none;
+    color: white;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 10;
+    font-weight: bold;
+}
+
+.manga-card:hover .manga-menu,
+.home-manga-card:hover .manga-menu,
+.recent-item:hover .manga-menu {
+    opacity: 1;
+}
+
+.manga-menu:hover {
+    background: rgba(0, 0, 0, 0.9);
+    transform: scale(1.1);
+}
+
+.manga-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: #333;
+    border: 1px solid #555;
+    border-radius: 4px;
+    min-width: 120px;
+    max-width: 140px;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.manga-dropdown-item {
+    padding: 6px 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #555;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.manga-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.manga-dropdown-item:hover {
+    background: #444;
+}
+
+/* Follows page */
+.follows-page {
+    padding: 20px;
+}
+
+.follows-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.follows-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.import-export-btn {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: background 0.2s;
+}
+
+.import-export-btn:hover {
+    background: #45a049;
+}
+
+.import-export-btn:nth-child(2) {
+    background: #2196F3;
+}
+
+.import-export-btn:nth-child(2):hover {
+    background: #1976D2;
+}
+
+.fetch-covers-btn {
+    background: #FF9800 !important;
+}
+
+.fetch-covers-btn:hover {
+    background: #F57C00 !important;
+}
+
+.fetch-covers-btn:disabled {
+    background: #666 !important;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.imported-placeholder {
+    background: linear-gradient(135deg, #4CAF50, #45a049) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: white !important;
+    text-align: center !important;
+    padding: 10px !important;
+}
+
+.follows-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.follow-card {
+    background: #333;
+    border-radius: 8px;
+    padding: 15px;
+    padding-bottom: 50px;
+    /* Make room for continue button */
+    cursor: pointer;
+    transition: background 0.2s;
+    position: relative;
+}
+
+.follow-card:hover {
+    background: #444;
+}
+
+.follow-menu {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.follow-card:hover .follow-menu {
+    opacity: 1;
+}
+
+.follow-menu:hover {
+    background: rgba(0, 0, 0, 0.9);
+}
+
+.follow-context-menu {
+    background: #2d2d2d;
+    border: 1px solid #555;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    min-width: 180px;
+    overflow: hidden;
+}
+
+.follow-context-menu .context-menu-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.follow-context-menu .context-menu-item:hover {
+    background: #444;
+}
+
+.follow-card .continue-btn {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    /* Full width minus padding */
+    background: linear-gradient(135deg, #ff6b6b, #ff5252);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 2;
+}
+
+.follow-card .continue-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
+.follow-card .start-reading-btn {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    /* Full width minus padding */
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 2;
+}
+
+.follow-card .start-reading-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.follow-progress {
+    font-size: 0.85rem;
+    color: #ff6b6b;
+    margin-bottom: 0.25rem;
+    font-weight: bold;
+}
+
+/* Following page controls */
+.follows-controls {
+    padding: 1rem 2rem;
+    background: #2d2d2d;
+    border-bottom: 1px solid #444;
+}
+
+.search-filter-container {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    max-width: 800px;
+}
+
+.follows-search {
+    flex: 1;
+    padding: 8px 12px;
+    background: #333;
+    border: 1px solid #555;
+    border-radius: 6px;
+    color: white;
+    font-size: 14px;
+}
+
+.follows-search:focus {
+    outline: none;
+    border-color: #ff6b6b;
+}
+
+.status-filter {
+    padding: 8px 12px;
+    background: #333;
+    border: 1px solid #555;
+    border-radius: 6px;
+    color: white;
+    font-size: 14px;
+    min-width: 150px;
+}
+
+.status-filter:focus {
+    outline: none;
+    border-color: #ff6b6b;
+}
+
+.clear-filters-btn {
+    padding: 8px 16px;
+    background: #555;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.clear-filters-btn:hover {
+    background: #666;
+}
+
+/* Status badge */
+.follow-status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #ff6b6b;
+    color: white;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+/* Context menu improvements */
+.context-menu-header {
+    padding: 8px 16px;
+    background: #444;
+    color: #ff6b6b;
+    font-weight: bold;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #555;
+}
+
+.context-menu-divider {
+    height: 1px;
+    background: #555;
+    margin: 4px 0;
+}
+
+.home-manga-card .continue-btn-home {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+    /* Full width minus padding */
+    background: linear-gradient(135deg, #ff6b6b, #ff5252);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 2;
+}
+
+.home-manga-card .continue-btn-home:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
+.home-manga-card .start-reading-btn-home {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+    /* Full width minus padding */
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 2;
+}
+
+.home-manga-card .start-reading-btn-home:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+/* Source selection in continue dialog */
+.source-selection-container {
+    margin: 1.5rem 0;
+}
+
+.source-selection-container h4 {
+    color: #ff6b6b;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.source-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.source-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background: #333;
+    border-radius: 8px;
+    border: 1px solid #444;
+    transition: all 0.2s;
+}
+
+.source-item:hover {
+    background: #3a3a3a;
+    border-color: #ff6b6b;
+}
+
+.source-info {
+    flex: 1;
+}
+
+.source-info .source-name {
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 0.25rem;
+}
+
+.source-info .source-chapters {
+    font-size: 0.9rem;
+    color: #ccc;
+}
+
+.source-select-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #ff6b6b, #ff5252);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.source-select-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+}
+
+.follow-cover {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.follow-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.follow-info {
+    font-size: 12px;
+    color: #ccc;
+    margin-bottom: 3px;
+}
+
+.follow-status {
+    font-size: 11px;
+    color: #999;
+}
+
+/* Notifications page */
+.notifications-page {
+    padding: 20px;
+}
+
+.notifications-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.notifications-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.mark-all-read-btn {
+    background: #666;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.mark-all-read-btn:hover {
+    background: #777;
+}
+
+.clear-all-notifications-btn {
+    background: #d32f2f;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.clear-all-notifications-btn:hover {
+    background: #b71c1c;
+}
+
+.notifications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.notification-item {
+    background: #333;
+    border-radius: 8px;
+    padding: 15px;
+    border-left: 4px solid #666;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-bottom: 10px;
+}
+
+.notification-item.unread {
+    border-left-color: #4CAF50;
+    background: #2a3a2a;
+}
+
+.notification-item:hover {
+    background: #444;
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    position: relative;
+}
+
+.notification-left {
+    flex-shrink: 0;
+}
+
+.notification-cover {
+    width: 50px;
+    height: 70px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.notification-cover-placeholder {
+    width: 50px;
+    height: 70px;
+    background: #555;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: #999;
+}
+
+.notification-middle {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-title {
+    font-weight: bold;
+    font-size: 14px;
+    color: #fff;
+    margin-bottom: 5px;
+}
+
+.notification-close-btn {
+    position: absolute;
+    top: -2px;
+    right: 5px;
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+    transition: all 0.2s;
+    z-index: 10;
+}
+
+.notification-close-btn:hover {
+    background: #555;
+    color: #fff;
+}
+
+.notification-message {
+    font-size: 13px;
+    color: #ccc;
+    margin-bottom: 8px;
+}
+
+.notification-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.notification-time {
+    font-size: 11px;
+    color: #999;
+}
+
+.notification-source {
+    font-size: 11px;
+    color: #ff6b6b;
+    font-weight: 500;
+}
+
+.notification-right {
+    flex-shrink: 0;
+}
+
+.notification-goto-btn {
+    background: linear-gradient(135deg, #ff6b6b, #ff5252);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.notification-goto-btn:hover {
+    background: linear-gradient(135deg, #ff5252, #ff4444);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
+/* Updated reader styles */
+.reader-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: #222;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.reader-controls-top {
+    border-bottom: 1px solid #444;
+}
+
+.reader-controls-bottom {
+    border-top: 1px solid #444;
+    margin-top: 20px;
+}
+
+.chapter-navigation {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.chapter-navigation button {
+    background: #444;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.chapter-navigation button:hover:not(:disabled) {
+    background: #555;
+}
+
+.chapter-navigation button:disabled {
+    background: #333;
+    color: #666;
+    cursor: not-allowed;
+}
+
+#chapterSelect,
+#chapterSelectBottom {
+    background: #444;
+    color: white;
+    border: 1px solid #666;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    min-width: 200px;
+}
+
+#chapterSelect:focus,
+#chapterSelectBottom:focus {
+    outline: none;
+    border-color: #888;
+}
+
+/* Vertical page layout */
+.page-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0;
+    background: #111;
+    gap: 0;
+}
+
+.manga-page-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+}
+
+.manga-page {
+    width: 45% !important;
+    height: auto !important;
+    max-width: 45% !important;
+    max-height: none !important;
+    display: block;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    object-fit: contain;
+}
+
+
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .reader-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .chapter-navigation {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .manga-page {
+        width: 65% !important;
+        max-width: 65% !important;
+    }
+
+    #chapterSelect,
+    #chapterSelectBottom {
+        min-width: auto;
+        width: 100%;
+    }
+}
+
+/* Content Filter Styles */
+.censored-container {
+    position: relative;
+    display: inline-block;
+}
+
+.censored-content {
+    filter: blur(20px);
+    transition: filter 0.3s ease;
+}
+
+.uncensored .censored-content {
+    filter: none;
+}
+
+.censor-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: opacity 0.3s ease;
+}
+
+.uncensored .censor-overlay {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.censor-content {
+    text-align: center;
+    color: white;
+    padding: 1rem;
+}
+
+.censor-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.censor-text {
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    font-weight: bold;
+}
+
+.censor-toggle {
+    background: #ff6b6b;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background 0.2s;
+}
+
+.censor-toggle:hover {
+    background: #ff5252;
+}
+
+/* Content Warning Badge */
+.content-warning {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: #ff4444;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    z-index: 5;
+}
+
+/* Manga card adjustments for censoring */
+.manga-card {
+    position: relative;
+}
+
+.manga-card .censored-container {
+    width: 100%;
+    height: 200px;
+}
+
+.manga-card .censored-container .manga-cover {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Filter toggle button in header */
+.filter-toggle {
+    background: #444;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background 0.2s;
+    margin-left: 0.5rem;
+}
+
+.filter-toggle:hover {
+    background: #555;
+}
+
+.filter-toggle.enabled {
+    background: #4CAF50;
+}
+
+.filter-toggle.enabled:hover {
+    background: #45a049;
+}
+
+/* Bottom Navigation Bar */
+.bottom-nav {
+    background: #2d2d2d;
+    border-top: 2px solid #444;
+    padding: 1rem 2rem;
+    margin-top: 2rem;
+}
+
+.bottom-nav-content {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    width: 100%;
+    gap: 1rem;
+}
+
+.bottom-nav h1 {
+    color: #ff6b6b;
+    font-size: 1.2rem;
+    margin: 0;
+    text-align: center;
+    grid-column: 2;
+}
+
+.bottom-nav-buttons {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: flex-end;
+    grid-column: 3;
+}
+
+.bottom-nav .header-btn {
+    background: #444;
+    color: white;
+    border: none;
+    padding: 0.6rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+}
+
+.bottom-nav .header-btn:hover {
+    background: #555;
+}
+
+.bottom-nav .notification-btn {
+    position: relative;
+    font-size: 1.2rem;
+    padding: 0.5rem;
+}
+
+.bottom-nav .notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ff4444;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    min-width: 16px;
+    text-align: center;
+}
+
+/* Main content styling */
+.main {
+    min-height: calc(100vh - 120px);
+}
+
+/* Hide bottom nav on small screens if needed */
+@media (max-width: 768px) {
+    .bottom-nav {
+        padding: 0.8rem 1rem;
+    }
+
+    .bottom-nav-content {
+        grid-template-columns: auto 1fr auto;
+        gap: 0.5rem;
+    }
+
+    .bottom-nav h1 {
+        font-size: 1rem;
+        text-align: left;
+        grid-column: 1;
+    }
+
+    .bottom-nav-buttons {
+        grid-column: 3;
+        gap: 0.5rem;
+    }
+
+    .bottom-nav .header-btn {
+        padding: 0.5rem 0.8rem;
+        font-size: 0.8rem;
+    }
+}
+
+/* Continue or Browse Dialog */
+.continue-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.continue-content {
+    background: #2d2d2d;
+    border-radius: 8px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    border: 2px solid #444;
+}
+
+.continue-content h3 {
+    color: #ff6b6b;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    font-size: 1.3rem;
+}
+
+.continue-manga-info {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    align-items: flex-start;
+}
+
+.continue-cover {
+    width: 80px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.continue-details {
+    flex: 1;
+}
+
+.continue-details h4 {
+    color: white;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.continue-source {
+    color: #888;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.continue-info {
+    color: #ccc;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.continue-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-direction: column;
+}
+
+.continue-btn {
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.2s;
+}
+
+.continue-btn.primary {
+    background: #ff6b6b;
+    color: white;
+}
+
+.continue-btn.primary:hover {
+    background: #ff5252;
+}
+
+.continue-btn.secondary {
+    background: #444;
+    color: white;
+}
+
+.continue-btn.secondary:hover {
+    background: #555;
+}
+
+.continue-btn.cancel {
+    background: #666;
+    color: white;
+}
+
+.continue-btn.cancel:hover {
+    background: #777;
+}
+
+/* Responsive design for continue dialog */
+@media (max-width: 768px) {
+    .continue-content {
+        padding: 1.5rem;
+        margin: 1rem;
+    }
+
+    .continue-manga-info {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .continue-cover {
+        align-self: center;
+    }
+}
+
+/* Source Selection in Continue Dialog */
+.source-list {
+    margin: 1.5rem 0;
+}
+
+.source-btn {
+    display: block;
+    width: 100%;
+    background: #444;
+    color: white;
+    border: none;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.2s;
+}
+
+.source-btn:hover {
+    background: #555;
+}
+
+.source-btn:last-child {
+    margin-bottom: 0;
+}
+
+.source-btn strong {
+    display: block;
+    font-size: 1rem;
+    margin-bottom: 0.2rem;
+}
+
+.source-btn span {
+    font-size: 0.8rem;
+    color: #ccc;
+}
+
+/* Continue buttons in search results */
+.continue-btn-search,
+.start-reading-btn-search {
+    width: 100%;
+    padding: 0.6rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    transition: background 0.2s;
+}
+
+.continue-btn-search {
+    background: linear-gradient(135deg, #ff6b6b, #ff5252);
+    color: white;
+}
+
+.continue-btn-search:hover {
+    background: linear-gradient(135deg, #ff5252, #ff4444);
+}
+
+.start-reading-btn-search {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+}
+
+.start-reading-btn-search:hover {
+    background: linear-gradient(135deg, #45a049, #3d8b40);
+}

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Vash Reader</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="app">
+        <header class="header">
+            <h1 id="homeTitle" class="clickable-title">Vash Reader</h1>
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Search manga...">
+                <button id="searchBtn">Search</button>
+            </div>
+            <div class="header-buttons">
+                <button id="followsBtn" class="header-btn">Following</button>
+                <button id="notificationsBtn" class="header-btn notification-btn">
+                    🔔
+                    <span id="notificationBadge" class="notification-badge hidden">0</span>
+                </button>
+                <button id="filterToggleBtn" class="filter-toggle enabled" title="Toggle content filter">🔞
+                    Filter</button>
+            </div>
+        </header>
+
+        <main class="main">
+            <div id="homePage" class="home-page">
+                <!-- Last Read Section -->
+                <section class="home-section">
+                    <div class="section-header">
+                        <h2>Last Read</h2>
+                        <div class="section-nav">
+                            <button id="lastReadPrev" class="nav-btn">←</button>
+                            <button id="lastReadNext" class="nav-btn">→</button>
+                        </div>
+                    </div>
+                    <div id="lastReadGrid" class="horizontal-grid"></div>
+                </section>
+
+                <!-- Popular Ongoing Section -->
+                <section class="home-section">
+                    <div class="section-header">
+                        <h2>Popular Ongoing</h2>
+                        <div class="section-nav">
+                            <button id="popularPrev" class="nav-btn">←</button>
+                            <button id="popularNext" class="nav-btn">→</button>
+                        </div>
+                    </div>
+                    <div id="popularGrid" class="horizontal-grid"></div>
+                </section>
+
+                <!-- Trending Section -->
+                <section class="home-section">
+                    <div class="section-header">
+                        <h2>Most Recent Popular</h2>
+                        <div class="section-nav">
+                            <button id="trendingPrev" class="nav-btn">←</button>
+                            <button id="trendingNext" class="nav-btn">→</button>
+                        </div>
+                    </div>
+                    <div id="trendingGrid" class="horizontal-grid"></div>
+                </section>
+
+                <!-- New Follow Section -->
+                <section class="home-section">
+                    <div class="section-header">
+                        <h2>Most Followed New Comics</h2>
+                        <div class="section-nav">
+                            <button id="newFollowPrev" class="nav-btn">←</button>
+                            <button id="newFollowNext" class="nav-btn">→</button>
+                        </div>
+                    </div>
+                    <div id="newFollowGrid" class="horizontal-grid"></div>
+                </section>
+
+                <!-- Recent Updates Section -->
+                <section class="home-section">
+                    <h2>Recent Updates</h2>
+                    <div id="recentGrid" class="recent-grid"></div>
+                </section>
+            </div>
+
+            <div id="searchResults" class="search-results hidden">
+                <h2>Search Results</h2>
+                <div id="resultsGrid" class="results-grid"></div>
+            </div>
+
+            <div id="sourceSelection" class="source-selection hidden">
+                <button id="backToHome" class="back-btn">← Back to Home</button>
+                <h2 id="sourceSelectionTitle"></h2>
+                <p class="source-selection-subtitle">Choose a source to read from:</p>
+                <div id="sourcesGrid" class="sources-grid"></div>
+            </div>
+
+            <div id="chapterList" class="chapter-list hidden">
+                <button id="backToSourceSelection" class="back-btn">← Back to Sources</button>
+                <h2 id="mangaTitle"></h2>
+                <div id="chaptersGrid" class="chapters-grid"></div>
+            </div>
+
+            <div id="followsPage" class="follows-page hidden">
+                <button id="backToHomeFromFollows" class="back-btn">← Back to Home</button>
+                <div class="follows-header">
+                    <h2>Following</h2>
+                    <div class="follows-actions">
+                        <button id="checkUpdatesBtn" class="import-export-btn check-updates-btn">🔄 Check for
+                            Updates</button>
+                        <button id="fetchCoversBtn" class="import-export-btn fetch-covers-btn">🖼️ Fetch All
+                            Covers</button>
+                        <button id="updateReadingProgressBtn" class="import-export-btn">📖 Add Continue Buttons</button>
+                        <button id="importFollowsBtn" class="import-export-btn">📥 Import CSV</button>
+                        <button id="exportFollowsBtn" class="import-export-btn">📤 Export CSV</button>
+                    </div>
+                </div>
+
+                <!-- Search and Filter Controls -->
+                <div class="follows-controls">
+                    <div class="search-filter-container">
+                        <input type="text" id="followsSearchInput" placeholder="Search manga..." class="follows-search">
+                        <select id="statusFilter" class="status-filter">
+                            <option value="">All Statuses</option>
+                            <option value="Reading">Reading</option>
+                            <option value="Completed">Completed</option>
+                            <option value="On-Hold">On-Hold</option>
+                            <option value="Dropped">Dropped</option>
+                            <option value="Plan to Read">Plan to Read</option>
+                        </select>
+                        <button id="clearFiltersBtn" class="clear-filters-btn">Clear</button>
+                    </div>
+                </div>
+
+                <div id="followsGrid" class="follows-grid"></div>
+
+                <!-- Hidden file input for CSV import -->
+                <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+            </div>
+
+            <div id="notificationsPage" class="notifications-page hidden">
+                <button id="backToHomeFromNotifications" class="back-btn">← Back to Home</button>
+                <div class="notifications-header">
+                    <h2>Notifications</h2>
+                    <div class="notifications-actions">
+                        <button id="markAllReadBtn" class="mark-all-read-btn">Mark All Read</button>
+                        <button id="clearAllNotificationsBtn" class="clear-all-notifications-btn">Clear All</button>
+                    </div>
+                </div>
+                <div id="notificationsList" class="notifications-list"></div>
+            </div>
+
+            <div id="reader" class="reader hidden">
+                <div class="reader-controls reader-controls-top">
+                    <span id="pageInfo"></span>
+                    <div class="chapter-navigation">
+                        <button id="prevChapter">← Previous Chapter</button>
+                        <select id="chapterSelect"></select>
+                        <button id="nextChapter">Next Chapter →</button>
+                    </div>
+                </div>
+                <div id="pageContainer" class="page-container"></div>
+                <div class="reader-controls reader-controls-bottom">
+                    <span id="pageInfoBottom"></span>
+                    <div class="chapter-navigation">
+                        <button id="prevChapterBottom">← Previous Chapter</button>
+                        <select id="chapterSelectBottom"></select>
+                        <button id="nextChapterBottom">Next Chapter →</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation Bar -->
+        <footer class="bottom-nav">
+            <div class="bottom-nav-content">
+                <h1 id="bottomHomeTitle" class="clickable-title">Vash Reader</h1>
+                <div class="bottom-nav-buttons">
+                    <button id="bottomFollowsBtn" class="header-btn">Following</button>
+                    <button id="bottomNotificationsBtn" class="header-btn notification-btn">
+                        🔔
+                        <span id="bottomNotificationBadge" class="notification-badge hidden">0</span>
+                    </button>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="../utils/content-filter.js"></script>
+    <script src="renderer.js"></script>
+</body>
+
+</html>

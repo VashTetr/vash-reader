@@ -307,6 +307,20 @@ class Storage {
             this.data.notifications = [];
         }
 
+        // Check if a similar notification already exists (even if read)
+        const existingNotification = this.data.notifications.find(existing =>
+            existing.type === notification.type &&
+            existing.mangaId === notification.mangaId &&
+            existing.source === notification.source &&
+            existing.newChapter === notification.newChapter
+        );
+
+        // If notification already exists, don't add it again
+        if (existingNotification) {
+            console.log(`Notification already exists for ${notification.title} chapter ${notification.newChapter}, skipping...`);
+            return;
+        }
+
         this.data.notifications.unshift({
             id: Date.now() + Math.random(),
             ...notification

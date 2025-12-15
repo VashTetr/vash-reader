@@ -1106,6 +1106,24 @@ body {
     box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
 }
 
+/* Following Updates specific styles */
+.following-update-card {
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.following-update-card:hover {
+    border-color: #ff6b6b;
+    box-shadow: 0 4px 20px rgba(255, 107, 107, 0.2);
+}
+
+.home-manga-update-time {
+    font-size: 0.75rem;
+    color: #aaa;
+    margin-top: 0.25rem;
+    font-style: italic;
+}
+
 /* Source selection in continue dialog */
 .source-selection-container {
     margin: 1.5rem 0;

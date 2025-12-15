@@ -9,8 +9,10 @@ class MangaReader {
         this.popularData = [];
         this.recentData = [];
         this.lastReadData = [];
+        this.followingUpdatesData = [];
         this.currentPopularPage = 0;
         this.currentLastReadPage = 0;
+        this.currentFollowingUpdatesPage = 0;
         this.currentTrendingPage = 0;
         this.currentNewFollowPage = 0;
 
@@ -144,6 +146,8 @@ class MangaReader {
         // Home page navigation
         addListener('lastReadPrev', 'click', () => this.navigateLastRead(-1));
         addListener('lastReadNext', 'click', () => this.navigateLastRead(1));
+        addListener('followingUpdatesPrev', 'click', () => this.navigateFollowingUpdates(-1));
+        addListener('followingUpdatesNext', 'click', () => this.navigateFollowingUpdates(1));
         addListener('popularPrev', 'click', () => this.navigatePopular(-1));
         addListener('popularNext', 'click', () => this.navigatePopular(1));
         addListener('trendingPrev', 'click', () => this.navigateTrending(-1));
@@ -1615,6 +1619,7 @@ class MangaReader {
             // Load all home page data
             await Promise.all([
                 this.loadLastRead(),
+                this.loadFollowingUpdates(),
                 this.loadPopular(),
                 this.loadTrending(),
                 this.loadNewFollow(),
@@ -1649,6 +1654,41 @@ class MangaReader {
             this.displayLastRead();
         } catch (error) {
             console.error('Failed to load last read:', error);
+        }
+    }
+
+    async loadFollowingUpdates() {
+        try {
+            // Get all notifications sorted by creation date (newest first)
+            const notifications = await window.mangaAPI.getNotifications();
+
+            // Filter for new chapter notifications and get unique manga
+            const uniqueMangaMap = new Map();
+
+            notifications
+                .filter(notification => notification.type === 'new_chapter')
+                .forEach(notification => {
+                    const key = `${notification.mangaId}-${notification.source}`;
+                    if (!uniqueMangaMap.has(key)) {
+                        uniqueMangaMap.set(key, {
+                            id: notification.mangaId,
+                            title: notification.title,
+                            source: notification.source,
+                            sourceUrl: notification.sourceUrl,
+                            coverUrl: notification.mangaCover,
+                            latestNotificationDate: notification.createdAt,
+                            nextChapterToRead: notification.nextChapterToRead
+                        });
+                    }
+                });
+
+            // Convert to array and sort by latest notification date
+            this.followingUpdatesData = Array.from(uniqueMangaMap.values())
+                .sort((a, b) => new Date(b.latestNotificationDate) - new Date(a.latestNotificationDate));
+
+            this.displayFollowingUpdates();
+        } catch (error) {
+            console.error('Failed to load following updates:', error);
         }
     }
 
@@ -1781,8 +1821,17 @@ class MangaReader {
         }
     }
 
-    displayLastRead() {
+    async displayLastRead() {
         const grid = document.getElementById('lastReadGrid');
+        const section = document.getElementById('lastReadSection');
+
+        // Hide section if no data
+        if (!this.lastReadData || this.lastReadData.length === 0) {
+            section.style.display = 'none';
+            return;
+        }
+
+        section.style.display = 'block';
         grid.innerHTML = '';
 
         const itemsPerPage = this.itemsToShow || 8; // Fallback to 8 if not calculated
@@ -1790,17 +1839,47 @@ class MangaReader {
         const endIndex = startIndex + itemsPerPage;
         const visibleItems = this.lastReadData.slice(startIndex, endIndex);
 
-        visibleItems.forEach(manga => {
-            const card = this.createHomeMangaCard(manga, true);
-            grid.appendChild(card);
-        });
+        // Create all cards in parallel for Last Read
+        const cardPromises = visibleItems.map(manga => this.createHomeMangaCard(manga, true));
+        const cards = await Promise.all(cardPromises);
+
+        cards.forEach(card => grid.appendChild(card));
 
         // Update navigation buttons
         document.getElementById('lastReadPrev').disabled = this.currentLastReadPage === 0;
         document.getElementById('lastReadNext').disabled = endIndex >= this.lastReadData.length;
     }
 
-    displayPopular() {
+    async displayFollowingUpdates() {
+        const grid = document.getElementById('followingUpdatesGrid');
+        const section = document.getElementById('followingUpdatesSection');
+
+        // Hide section if no data
+        if (!this.followingUpdatesData || this.followingUpdatesData.length === 0) {
+            section.style.display = 'none';
+            return;
+        }
+
+        section.style.display = 'block';
+        grid.innerHTML = '';
+
+        const itemsPerPage = this.itemsToShow || 8; // Fallback to 8 if not calculated
+        const startIndex = this.currentFollowingUpdatesPage * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const visibleItems = this.followingUpdatesData.slice(startIndex, endIndex);
+
+        // Create all cards in parallel
+        const cardPromises = visibleItems.map(manga => this.createFollowingUpdateCard(manga));
+        const cards = await Promise.all(cardPromises);
+
+        cards.forEach(card => grid.appendChild(card));
+
+        // Update navigation buttons
+        document.getElementById('followingUpdatesPrev').disabled = this.currentFollowingUpdatesPage === 0;
+        document.getElementById('followingUpdatesNext').disabled = endIndex >= this.followingUpdatesData.length;
+    }
+
+    async displayPopular() {
         const grid = document.getElementById('popularGrid');
         grid.innerHTML = '';
 
@@ -1809,17 +1888,18 @@ class MangaReader {
         const endIndex = startIndex + itemsPerPage;
         const visibleItems = this.popularData.slice(startIndex, endIndex);
 
-        visibleItems.forEach(manga => {
-            const card = this.createHomeMangaCard(manga);
-            grid.appendChild(card);
-        });
+        // Create all cards in parallel
+        const cardPromises = visibleItems.map(manga => this.createHomeMangaCard(manga));
+        const cards = await Promise.all(cardPromises);
+
+        cards.forEach(card => grid.appendChild(card));
 
         // Update navigation buttons
         document.getElementById('popularPrev').disabled = this.currentPopularPage === 0;
         document.getElementById('popularNext').disabled = endIndex >= this.popularData.length;
     }
 
-    displayTrending() {
+    async displayTrending() {
         const grid = document.getElementById('trendingGrid');
         grid.innerHTML = '';
 
@@ -1828,17 +1908,18 @@ class MangaReader {
         const endIndex = startIndex + itemsPerPage;
         const visibleItems = this.trendingData.slice(startIndex, endIndex);
 
-        visibleItems.forEach(manga => {
-            const card = this.createHomeMangaCard(manga);
-            grid.appendChild(card);
-        });
+        // Create all cards in parallel
+        const cardPromises = visibleItems.map(manga => this.createHomeMangaCard(manga));
+        const cards = await Promise.all(cardPromises);
+
+        cards.forEach(card => grid.appendChild(card));
 
         // Update navigation buttons
         document.getElementById('trendingPrev').disabled = this.currentTrendingPage === 0;
         document.getElementById('trendingNext').disabled = endIndex >= this.trendingData.length;
     }
 
-    displayNewFollow() {
+    async displayNewFollow() {
         const grid = document.getElementById('newFollowGrid');
         grid.innerHTML = '';
 
@@ -1847,10 +1928,11 @@ class MangaReader {
         const endIndex = startIndex + itemsPerPage;
         const visibleItems = this.newFollowData.slice(startIndex, endIndex);
 
-        visibleItems.forEach(manga => {
-            const card = this.createHomeMangaCard(manga);
-            grid.appendChild(card);
-        });
+        // Create all cards in parallel
+        const cardPromises = visibleItems.map(manga => this.createHomeMangaCard(manga));
+        const cards = await Promise.all(cardPromises);
+
+        cards.forEach(card => grid.appendChild(card));
 
         // Update navigation buttons
         document.getElementById('newFollowPrev').disabled = this.currentNewFollowPage === 0;
@@ -1868,25 +1950,114 @@ class MangaReader {
         });
     }
 
-    createHomeMangaCard(manga, isLastRead = false) {
+    async createHomeMangaCard(manga, isLastRead = false) {
         const card = document.createElement('div');
         card.className = 'home-manga-card';
 
-        const chapterInfo = isLastRead && manga.lastChapter ?
-            `<div class="home-manga-chapter">Last: ${manga.lastChapter.title || `Ch. ${manga.lastChapter.number}`}</div>` :
-            manga.chapterTitle ? `<div class="home-manga-chapter">${manga.chapterTitle}</div>` : '';
+        let chapterInfo = '';
+        let continueButton = '';
+
+        if (isLastRead) {
+            // Get detailed progress information for Last Read items
+            try {
+                // Get total chapters available
+                let totalChapters = 0;
+                let currentChapter = 0;
+                let percentRead = 0;
+
+                // Try to get chapter count from followed manga
+                const followedManga = await window.mangaAPI.getFollows();
+                const followedMatch = followedManga.find(f => f.id === manga.id && f.source === manga.source);
+
+                if (followedMatch && followedMatch.lastKnownChapter) {
+                    totalChapters = followedMatch.lastKnownChapter;
+                }
+
+                // Get current reading progress
+                if (manga.lastChapter) {
+                    currentChapter = parseFloat(manga.lastChapter.number) || 0;
+                }
+
+                // Calculate percentage if we have both values
+                if (totalChapters > 0 && currentChapter > 0) {
+                    percentRead = Math.round((currentChapter / totalChapters) * 100);
+                    chapterInfo = `<div class="home-manga-chapter">Progress: ${currentChapter}/${totalChapters} (${percentRead}%)</div>`;
+                } else if (manga.lastChapter) {
+                    chapterInfo = `<div class="home-manga-chapter">Last: Ch. ${manga.lastChapter.number}</div>`;
+                }
+
+                // Create continue button
+                if (manga.lastChapter) {
+                    continueButton = `<button class="continue-btn-home" onclick="event.stopPropagation()">📖 Continue Ch. ${manga.lastChapter.number}</button>`;
+                } else {
+                    continueButton = `<button class="start-reading-btn-home" onclick="event.stopPropagation()">📚 Start Reading</button>`;
+                }
+            } catch (error) {
+                console.error('Failed to get progress info:', error);
+                // Fallback to simple display
+                chapterInfo = manga.lastChapter ?
+                    `<div class="home-manga-chapter">Last: Ch. ${manga.lastChapter.number}</div>` : '';
+                continueButton = manga.lastChapter ?
+                    `<button class="continue-btn-home" onclick="event.stopPropagation()">📖 Continue Ch. ${manga.lastChapter.number}</button>` :
+                    `<button class="start-reading-btn-home" onclick="event.stopPropagation()">📚 Start Reading</button>`;
+            }
+        } else {
+            // For non-Last Read items (Popular, Trending, New Follow), show chapter count
+            console.log('DEBUG: Non-Last Read manga data:', manga.title, 'lastChapter:', manga.lastChapter, 'Type:', typeof manga.lastChapter);
+
+            if (manga.lastChapter) {
+                // If lastChapter is a number, show it as chapter count
+                if (typeof manga.lastChapter === 'number') {
+                    chapterInfo = `<div class="home-manga-chapter">${manga.lastChapter} chapters</div>`;
+                }
+                // If lastChapter is an object with chapter number
+                else if (manga.lastChapter.chap || manga.lastChapter.number) {
+                    const chapterNum = manga.lastChapter.chap || manga.lastChapter.number;
+                    chapterInfo = `<div class="home-manga-chapter">${chapterNum} chapters</div>`;
+                }
+                // If lastChapter has a title, show it
+                else if (manga.lastChapter.title) {
+                    chapterInfo = `<div class="home-manga-chapter">${manga.lastChapter.title}</div>`;
+                }
+                // If lastChapter is a string, try to parse it
+                else if (typeof manga.lastChapter === 'string') {
+                    chapterInfo = `<div class="home-manga-chapter">Ch. ${manga.lastChapter}</div>`;
+                }
+                // If lastChapter is an object, show what we can
+                else {
+                    console.log('DEBUG: Unknown lastChapter structure:', manga.lastChapter);
+                    chapterInfo = `<div class="home-manga-chapter">Latest chapter available</div>`;
+                }
+            }
+            // Check for other possible chapter fields from API
+            else if (manga.chapter_count) {
+                chapterInfo = `<div class="home-manga-chapter">${manga.chapter_count} chapters</div>`;
+            }
+            else if (manga.chapters) {
+                chapterInfo = `<div class="home-manga-chapter">${manga.chapters} chapters</div>`;
+            }
+            else if (manga.latest_chapter) {
+                chapterInfo = `<div class="home-manga-chapter">Ch. ${manga.latest_chapter}</div>`;
+            }
+            // Fallback to chapterTitle if available
+            else if (manga.chapterTitle) {
+                chapterInfo = `<div class="home-manga-chapter">${manga.chapterTitle}</div>`;
+            }
+            // Show total chapters if available directly on manga object
+            else if (manga.totalChapters) {
+                chapterInfo = `<div class="home-manga-chapter">${manga.totalChapters} chapters</div>`;
+            }
+            else {
+                console.log('DEBUG: No chapter info available for:', manga.title, 'Available fields:', Object.keys(manga));
+            }
+        }
 
         card.innerHTML = `
             ${manga.coverUrl ? `<img src="${manga.coverUrl}" alt="${manga.title}" class="home-manga-cover">` : '<div class="home-manga-cover" style="background: #444; display: flex; align-items: center; justify-content: center; color: #999;">No Image</div>'}
             <div class="home-manga-title">${manga.title}</div>
             <div class="home-manga-source">${manga.source}</div>
             ${chapterInfo}
-            ${isLastRead ?
-                (manga.lastChapter ?
-                    `<button class="continue-btn-home" onclick="event.stopPropagation()">📖 Continue Ch. ${manga.lastChapter.number}</button>` :
-                    `<button class="start-reading-btn-home" onclick="event.stopPropagation()">📚 Start Reading</button>`
-                ) : ''
-            }
+            ${continueButton}
             <button class="manga-menu" onclick="event.stopPropagation()">⋮</button>
         `;
 
@@ -1922,6 +2093,98 @@ class MangaReader {
         return card;
     }
 
+    async createFollowingUpdateCard(manga) {
+        const card = document.createElement('div');
+        card.className = 'home-manga-card following-update-card';
+
+        // Format the notification date
+        const notificationDate = new Date(manga.latestNotificationDate);
+        const timeAgo = this.getTimeAgo(notificationDate);
+
+        // Create continue button - use nextChapterToRead from notification if available
+        let continueButton = '';
+        if (manga.nextChapterToRead) {
+            continueButton = `<button class="continue-btn-home" data-manga-id="${manga.id}" data-source="${manga.source}" data-chapter="${manga.nextChapterToRead}">📖 Continue Ch. ${manga.nextChapterToRead}</button>`;
+        } else {
+            continueButton = `<button class="start-reading-btn-home" data-manga-id="${manga.id}" data-source="${manga.source}">📚 Start Reading</button>`;
+        }
+
+        card.innerHTML = `
+            ${manga.coverUrl ? `<img src="${manga.coverUrl}" alt="${manga.title}" class="home-manga-cover">` : '<div class="home-manga-cover" style="background: #444; display: flex; align-items: center; justify-content: center; color: #999;">No Image</div>'}
+            <div class="home-manga-title">${manga.title}</div>
+            <div class="home-manga-source">${manga.source}</div>
+            <div class="home-manga-update-time">Updated ${timeAgo}</div>
+            ${continueButton}
+            <button class="manga-menu" onclick="event.stopPropagation()">⋮</button>
+        `;
+
+        card.addEventListener('click', () => this.selectManga(manga));
+
+        // Add button functionality
+        const continueBtn = card.querySelector('.continue-btn-home');
+        const startBtn = card.querySelector('.start-reading-btn-home');
+
+        if (continueBtn) {
+            continueBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const mangaId = continueBtn.dataset.mangaId;
+                const source = continueBtn.dataset.source;
+                const chapter = parseFloat(continueBtn.dataset.chapter);
+                this.continueFromNotification(mangaId, source, chapter);
+            });
+        }
+
+        if (startBtn) {
+            startBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.selectManga(manga);
+            });
+        }
+
+        // Add menu functionality
+        const menuBtn = card.querySelector('.manga-menu');
+        menuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.showMangaMenu(e, manga, card, false);
+        });
+
+        return card;
+    }
+
+    getTimeAgo(date) {
+        const now = new Date();
+        const diffInSeconds = Math.floor((now - date) / 1000);
+
+        if (diffInSeconds < 60) return 'just now';
+        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+        if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+        return `${Math.floor(diffInSeconds / 604800)}w ago`;
+    }
+
+    async continueFromNotification(mangaId, source, chapterNumber) {
+        try {
+            // Get the followed manga details
+            const followedManga = await window.mangaAPI.getFollows();
+            const manga = followedManga.find(f => f.id === mangaId && f.source === source);
+
+            if (!manga) {
+                this.showError('Manga not found in following list');
+                return;
+            }
+
+            // Set current manga and continue info
+            this.currentManga = manga;
+            this.currentContinueInfo = { chapterNumber };
+
+            // Show manga details to select source and continue
+            this.showMangaDetails(manga, this.currentContinueInfo);
+        } catch (error) {
+            console.error('Failed to continue from notification:', error);
+            this.showError('Failed to continue reading: ' + error.message);
+        }
+    }
+
     createRecentItem(manga) {
         const item = document.createElement('div');
         item.className = 'recent-item';
@@ -1938,43 +2201,54 @@ class MangaReader {
         return item;
     }
 
-    navigateLastRead(direction) {
+    async navigateLastRead(direction) {
         const newPage = this.currentLastReadPage + direction;
         const maxPage = Math.ceil(this.lastReadData.length / 8) - 1;
 
         if (newPage >= 0 && newPage <= maxPage) {
             this.currentLastReadPage = newPage;
-            this.displayLastRead();
+            await this.displayLastRead();
         }
     }
 
-    navigatePopular(direction) {
+    async navigateFollowingUpdates(direction) {
+        const newPage = this.currentFollowingUpdatesPage + direction;
+        const itemsPerPage = this.itemsToShow || 8;
+        const maxPage = Math.ceil(this.followingUpdatesData.length / itemsPerPage) - 1;
+
+        if (newPage >= 0 && newPage <= maxPage) {
+            this.currentFollowingUpdatesPage = newPage;
+            await this.displayFollowingUpdates();
+        }
+    }
+
+    async navigatePopular(direction) {
         const newPage = this.currentPopularPage + direction;
         const maxPage = Math.ceil(this.popularData.length / 8) - 1;
 
         if (newPage >= 0 && newPage <= maxPage) {
             this.currentPopularPage = newPage;
-            this.displayPopular();
+            await this.displayPopular();
         }
     }
 
-    navigateTrending(direction) {
+    async navigateTrending(direction) {
         const newPage = this.currentTrendingPage + direction;
         const maxPage = Math.ceil(this.trendingData.length / 8) - 1;
 
         if (newPage >= 0 && newPage <= maxPage) {
             this.currentTrendingPage = newPage;
-            this.displayTrending();
+            await this.displayTrending();
         }
     }
 
-    navigateNewFollow(direction) {
+    async navigateNewFollow(direction) {
         const newPage = this.currentNewFollowPage + direction;
         const maxPage = Math.ceil(this.newFollowData.length / 8) - 1;
 
         if (newPage >= 0 && newPage <= maxPage) {
             this.currentNewFollowPage = newPage;
-            this.displayNewFollow();
+            await this.displayNewFollow();
         }
     }
 

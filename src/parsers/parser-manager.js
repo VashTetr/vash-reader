@@ -7,6 +7,7 @@ const ComickParser = require('./comick-parser');
 const MangakakalotParser = require('./mangakakalot-parser');
 const AsuraScansParser = require('./asurascans-parser');
 const FlameComicsParser = require('./flamecomics-parser');
+const MangaJinxParser = require('./mangajinx-parser');
 // Alternative webtoon/manhwa parsers
 const ToonilyParser = require('./toonily-parser');
 const MangaParkParser = require('./mangapark-parser');
@@ -25,6 +26,7 @@ class ParserManager {
             new MangakakalotParser(),
             new AsuraScansParser(),
             new FlameComicsParser(),
+            new MangaJinxParser(),
             new ToonilyParser(),
             new MangaParkParser()
             // new MangaHereParser() // Temporarily disabled - 522 errors

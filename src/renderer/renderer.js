@@ -1042,8 +1042,10 @@ class MangaReader {
         await this.updateReaderDisplay();
         this.showReader(fromPage);
 
-        // Resume at saved position if available
-        await this.resumeAtSavedPosition();
+        // Resume at saved position if available (but not when navigating between chapters)
+        if (fromPage !== 'navigation') {
+            await this.resumeAtSavedPosition();
+        }
 
         this.hideLoading(); // Hide loading after pages are displayed
     }
@@ -1275,7 +1277,7 @@ class MangaReader {
         const currentIndex = this.currentChapter.index || 0;
         if (currentIndex > 0 && this.allChapters) {
             const prevChapter = this.allChapters[currentIndex - 1];
-            await this.readChapter(prevChapter);
+            await this.readChapter(prevChapter, 'navigation');
         }
     }
 
@@ -1287,14 +1289,14 @@ class MangaReader {
         const currentIndex = this.currentChapter.index || 0;
         if (currentIndex < (this.allChapters?.length - 1 || 0) && this.allChapters) {
             const nextChapter = this.allChapters[currentIndex + 1];
-            await this.readChapter(nextChapter);
+            await this.readChapter(nextChapter, 'navigation');
         }
     }
 
     async goToChapter(chapterIndex) {
         if (this.allChapters && this.allChapters[chapterIndex]) {
             const chapter = this.allChapters[chapterIndex];
-            await this.readChapter(chapter);
+            await this.readChapter(chapter, 'navigation');
         }
     }
 

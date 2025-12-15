@@ -262,14 +262,21 @@ class Storage {
 
             // Create notification if new chapters available
             if (chapterCount > oldCount && oldCount > 0) {
+                const nextChapterToRead = Math.floor(oldCount) + 1;
+
                 this.addNotification({
                     type: 'new_chapter',
                     mangaId: mangaId,
                     source: source,
                     title: follow.title,
                     message: `New chapters available! (${oldCount} → ${chapterCount})`,
-                    newChapters: chapterCount - oldCount,
-                    createdAt: new Date().toISOString()
+                    mangaCover: follow.coverUrl,
+                    oldChapter: oldCount,
+                    newChapter: chapterCount,
+                    nextChapterToRead: nextChapterToRead,
+                    sourceUrl: follow.url,
+                    createdAt: new Date().toISOString(),
+                    read: false
                 });
             }
 
@@ -307,19 +314,33 @@ class Storage {
             this.data.notifications = [];
         }
 
-        // Check if a similar notification already exists (even if read)
-        const existingNotification = this.data.notifications.find(existing =>
-            existing.type === notification.type &&
-            existing.mangaId === notification.mangaId &&
-            existing.source === notification.source &&
-            existing.newChapter === notification.newChapter
-        );
+        // Check for duplicate notifications (exact same chapter)
+        const isDuplicate = this.data.notifications.some(existingNotification => {
+            return existingNotification.type === notification.type &&
+                existingNotification.mangaId === notification.mangaId &&
+                existingNotification.source === notification.source &&
+                existingNotification.newChapter === notification.newChapter;
+        });
 
-        // If notification already exists, don't add it again
-        if (existingNotification) {
-            console.log(`Notification already exists for ${notification.title} chapter ${notification.newChapter}, skipping...`);
-            return;
+        if (isDuplicate) {
+            console.log(`Duplicate notification skipped for ${notification.title} (Ch. ${notification.newChapter})`);
+            return false; // Return false to indicate no notification was added
         }
+
+        // Remove older notifications for the same manga to prevent accumulation
+        this.data.notifications = this.data.notifications.filter(existingNotification => {
+            const isSameManga = existingNotification.type === notification.type &&
+                existingNotification.mangaId === notification.mangaId &&
+                existingNotification.source === notification.source;
+
+            if (isSameManga) {
+                // Keep the notification if it's for a newer chapter than what we're adding
+                // or if it's read (user might want to keep read notifications)
+                return existingNotification.newChapter > notification.newChapter || existingNotification.read;
+            }
+
+            return true; // Keep notifications for other manga
+        });
 
         this.data.notifications.unshift({
             id: Date.now() + Math.random(),
@@ -329,6 +350,9 @@ class Storage {
         // Keep only last 100 notifications
         this.data.notifications = this.data.notifications.slice(0, 100);
         this.saveData();
+
+        console.log(`New notification added for ${notification.title} (Ch. ${notification.newChapter})`);
+        return true; // Return true to indicate notification was added
     }
 
     getNotifications(unreadOnly = false) {

@@ -108,6 +108,20 @@ class BaseParser {
         return cheerio.load(html);
     }
 
+    // Timeout wrapper for search operations
+    async searchWithTimeout(query, timeoutMs = 5000) {
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error(`${this.name} search timeout after ${timeoutMs}ms`)), timeoutMs);
+        });
+
+        try {
+            return await Promise.race([this.search(query), timeoutPromise]);
+        } catch (error) {
+            console.warn(`${this.name} search failed:`, error.message);
+            return [];
+        }
+    }
+
     // Abstract methods to be implemented by subclasses
     async search(query) {
         throw new Error('search() method must be implemented');

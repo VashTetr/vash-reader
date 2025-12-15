@@ -2564,6 +2564,41 @@ body {
     grid-column: 1 / -1;
 }
 
+.sources-complete-message {
+    text-align: center;
+    color: #4caf50;
+    font-size: 0.9rem;
+    padding: 10px;
+    margin-top: 10px;
+    background: rgba(76, 175, 80, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    grid-column: 1 / -1;
+    animation: fadeInOut 3s ease-in-out;
+}
+
+@keyframes fadeInOut {
+    0% {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    20% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    80% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .manga-info-header {

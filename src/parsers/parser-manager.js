@@ -2,7 +2,7 @@ const MangadexParser = require('./mangadex-parser');
 const TrueMangaParser = require('./truemanga-parser');
 const MangaBuddyParser = require('./mangabuddy-parser');
 const MangaTownParser = require('./mangatown-parser');
-const BatoToParser = require('./batoto-parser');
+// const BatoToParser = require('./batoto-parser'); // Temporarily disabled - 522 errors
 const ComickParser = require('./comick-parser');
 const MangakakalotParser = require('./mangakakalot-parser');
 const AsuraScansParser = require('./asurascans-parser');
@@ -11,7 +11,7 @@ const FlameComicsParser = require('./flamecomics-parser');
 const ToonilyParser = require('./toonily-parser');
 const MangaParkParser = require('./mangapark-parser');
 // Additional parsers
-const MangaHereParser = require('./mangahere-parser');
+// const MangaHereParser = require('./mangahere-parser'); // Temporarily disabled - 522 errors
 
 class ParserManager {
     constructor() {
@@ -20,14 +20,14 @@ class ParserManager {
             new TrueMangaParser(),
             new MangaBuddyParser(),
             new MangaTownParser(),
-            new BatoToParser(),
+            // new BatoToParser(), // Temporarily disabled - 522 errors
             new ComickParser(),
             new MangakakalotParser(),
             new AsuraScansParser(),
             new FlameComicsParser(),
             new ToonilyParser(),
-            new MangaParkParser(),
-            new MangaHereParser()
+            new MangaParkParser()
+            // new MangaHereParser() // Temporarily disabled - 522 errors
         ];
     }
 

@@ -99,67 +99,88 @@ class MangaScraper {
             const prioritizedTitles = this.selectBestTitles(allTitles, 5);
             console.log(`Using ${prioritizedTitles.length} prioritized titles:`, prioritizedTitles);
 
-            // Parallelize searches across all sources
+            // Parallelize searches across all sources with timeout
             const searchPromises = readingSources.map(async (parser) => {
-                try {
-                    console.log(`Searching in ${parser.name}...`);
+                // Add timeout wrapper for each parser
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error(`${parser.name} search timeout`)), 6000); // 6 second timeout per parser
+                });
 
-                    // Try titles in priority order, stop at first good match
-                    let bestResults = [];
-                    let bestScore = 0;
+                const searchPromise = (async () => {
+                    try {
+                        console.log(`Searching in ${parser.name}...`);
 
-                    for (const title of prioritizedTitles) {
-                        try {
-                            const results = await parser.search(title);
+                        // Try titles in priority order, stop at first good match
+                        let bestResults = [];
+                        let bestScore = 0;
 
-                            if (results.length > 0) {
-                                // Calculate relevance scores for these results against ALL known titles
-                                const scoredResults = results.map(result => {
-                                    let maxScore = 0;
-                                    for (const knownTitle of allTitles) {
-                                        const score = this.calculateTitleSimilarity(knownTitle, result.title);
-                                        maxScore = Math.max(maxScore, score);
+                        for (const title of prioritizedTitles) {
+                            try {
+                                const results = await parser.searchWithTimeout(title, 5000);
+
+                                if (results.length > 0) {
+                                    // Calculate relevance scores for these results against ALL known titles
+                                    const scoredResults = results.map(result => {
+                                        let maxScore = 0;
+                                        for (const knownTitle of allTitles) {
+                                            const score = this.calculateTitleSimilarity(knownTitle, result.title);
+                                            maxScore = Math.max(maxScore, score);
+                                        }
+                                        return {
+                                            ...result,
+                                            parserName: parser.name,
+                                            relevanceScore: maxScore
+                                        };
+                                    });
+
+                                    // Find the best match from this search
+                                    const topResult = scoredResults.reduce((best, current) =>
+                                        current.relevanceScore > best.relevanceScore ? current : best
+                                    );
+
+                                    // If this is better than our current best, use it
+                                    if (topResult.relevanceScore > bestScore) {
+                                        bestResults = scoredResults.filter(r => r.relevanceScore >= 60); // Only high-confidence matches
+                                        bestScore = topResult.relevanceScore;
                                     }
-                                    return {
-                                        ...result,
-                                        parserName: parser.name,
-                                        relevanceScore: maxScore
-                                    };
-                                });
 
-                                // Find the best match from this search
-                                const topResult = scoredResults.reduce((best, current) =>
-                                    current.relevanceScore > best.relevanceScore ? current : best
-                                );
-
-                                // If this is better than our current best, use it
-                                if (topResult.relevanceScore > bestScore) {
-                                    bestResults = scoredResults.filter(r => r.relevanceScore >= 60); // Only high-confidence matches
-                                    bestScore = topResult.relevanceScore;
+                                    // If we found a very good match (85+), stop searching with other titles
+                                    if (topResult.relevanceScore >= 85) {
+                                        console.log(`${parser.name} found excellent match (${topResult.relevanceScore}%) with "${title}"`);
+                                        break;
+                                    }
                                 }
-
-                                // If we found a very good match (85+), stop searching with other titles
-                                if (topResult.relevanceScore >= 85) {
-                                    console.log(`${parser.name} found excellent match (${topResult.relevanceScore}%) with "${title}"`);
-                                    break;
-                                }
+                            } catch (termError) {
+                                console.error(`Search term "${title}" failed for ${parser.name}:`, termError.message);
                             }
-                        } catch (termError) {
-                            console.error(`Search term "${title}" failed for ${parser.name}:`, termError.message);
                         }
+
+                        console.log(`${parser.name} returned ${bestResults.length} relevant results (best score: ${bestScore})`);
+                        return bestResults;
+
+                    } catch (error) {
+                        console.error(`Search failed for ${parser.name}:`, error.message);
+                        return [];
                     }
+                })();
 
-                    console.log(`${parser.name} returned ${bestResults.length} relevant results (best score: ${bestScore})`);
-                    return bestResults;
+                // Race between search and timeout
+                return Promise.race([searchPromise, timeoutPromise]).catch(error => {
+                    console.warn(`${parser.name} failed or timed out:`, error.message);
+                    return []; // Return empty array for failed/timed out searches
+                });
+            });
 
-                } catch (error) {
-                    console.error(`Search failed for ${parser.name}:`, error.message);
+            // Use Promise.allSettled to handle failures gracefully and return results as they complete
+            const settledResults = await Promise.allSettled(searchPromises);
+            const searchResults = settledResults.map(result => {
+                if (result.status === 'fulfilled') {
+                    return result.value;
+                } else {
+                    console.warn('Search promise rejected:', result.reason?.message);
                     return [];
                 }
             });
-
-            // Wait for all searches to complete
-            const searchResults = await Promise.all(searchPromises);
 
             // Flatten all results into a single array
             const allResults = searchResults.flat();

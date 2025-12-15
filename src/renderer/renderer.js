@@ -2002,54 +2002,8 @@ class MangaReader {
                     `<button class="start-reading-btn-home" onclick="event.stopPropagation()">📚 Start Reading</button>`;
             }
         } else {
-            // For non-Last Read items (Popular, Trending, New Follow), show chapter count
-            console.log('DEBUG: Non-Last Read manga data:', manga.title, 'lastChapter:', manga.lastChapter, 'Type:', typeof manga.lastChapter);
-
-            if (manga.lastChapter) {
-                // If lastChapter is a number, show it as chapter count
-                if (typeof manga.lastChapter === 'number') {
-                    chapterInfo = `<div class="home-manga-chapter">${manga.lastChapter} chapters</div>`;
-                }
-                // If lastChapter is an object with chapter number
-                else if (manga.lastChapter.chap || manga.lastChapter.number) {
-                    const chapterNum = manga.lastChapter.chap || manga.lastChapter.number;
-                    chapterInfo = `<div class="home-manga-chapter">${chapterNum} chapters</div>`;
-                }
-                // If lastChapter has a title, show it
-                else if (manga.lastChapter.title) {
-                    chapterInfo = `<div class="home-manga-chapter">${manga.lastChapter.title}</div>`;
-                }
-                // If lastChapter is a string, try to parse it
-                else if (typeof manga.lastChapter === 'string') {
-                    chapterInfo = `<div class="home-manga-chapter">Ch. ${manga.lastChapter}</div>`;
-                }
-                // If lastChapter is an object, show what we can
-                else {
-                    console.log('DEBUG: Unknown lastChapter structure:', manga.lastChapter);
-                    chapterInfo = `<div class="home-manga-chapter">Latest chapter available</div>`;
-                }
-            }
-            // Check for other possible chapter fields from API
-            else if (manga.chapter_count) {
-                chapterInfo = `<div class="home-manga-chapter">${manga.chapter_count} chapters</div>`;
-            }
-            else if (manga.chapters) {
-                chapterInfo = `<div class="home-manga-chapter">${manga.chapters} chapters</div>`;
-            }
-            else if (manga.latest_chapter) {
-                chapterInfo = `<div class="home-manga-chapter">Ch. ${manga.latest_chapter}</div>`;
-            }
-            // Fallback to chapterTitle if available
-            else if (manga.chapterTitle) {
-                chapterInfo = `<div class="home-manga-chapter">${manga.chapterTitle}</div>`;
-            }
-            // Show total chapters if available directly on manga object
-            else if (manga.totalChapters) {
-                chapterInfo = `<div class="home-manga-chapter">${manga.totalChapters} chapters</div>`;
-            }
-            else {
-                console.log('DEBUG: No chapter info available for:', manga.title, 'Available fields:', Object.keys(manga));
-            }
+            // For non-Last Read items, show basic chapter info if available
+            chapterInfo = manga.chapterTitle ? `<div class="home-manga-chapter">${manga.chapterTitle}</div>` : '';
         }
 
         card.innerHTML = `
@@ -2506,60 +2460,138 @@ class MangaReader {
         const sourcesContainer = document.getElementById('mangaSources');
         sourcesContainer.innerHTML = '<div class="loading-message">🔍 Finding available sources...</div>';
 
-        try {
-            // Use multiple search strategies to find sources
-            let sources = [];
+        // Track found sources to avoid duplicates
+        const foundSources = new Map();
+        let sourcesFound = 0;
 
-            // Strategy 1: Use existing findMangaSources with title and URL
-            if (manga.url) {
-                sources = await window.mangaAPI.findMangaSources(manga.title, manga.url);
-            }
+        // Helper function to add a source as soon as it's found
+        const addSourceCard = (source) => {
+            const parserName = source.parserName || source.source;
 
-            // Strategy 2: If no sources found or no URL, try with just title
-            if (sources.length === 0) {
-                console.log('Trying source search with title only...');
-                sources = await window.mangaAPI.findMangaSources(manga.title);
-            }
-
-            // Strategy 3: If still no sources, try with alternative titles if available
-            if (sources.length === 0 && manga.alternativeTitles && manga.alternativeTitles.length > 0) {
-                console.log('Trying with alternative titles...');
-                for (const altTitle of manga.alternativeTitles.slice(0, 3)) { // Try first 3 alt titles
-                    const altSources = await window.mangaAPI.findMangaSources(altTitle);
-                    if (altSources.length > 0) {
-                        sources = altSources;
-                        break;
-                    }
-                }
-            }
-
-            if (sources.length === 0) {
-                sourcesContainer.innerHTML = '<div class="loading-message">❌ No sources found for this manga. Try searching for it manually.</div>';
+            // Avoid duplicates
+            if (foundSources.has(parserName)) {
                 return;
             }
 
-            sourcesContainer.innerHTML = '';
+            foundSources.set(parserName, source);
+            sourcesFound++;
 
-            // Group sources by parser name (like the old version)
-            const groupedSources = {};
-            sources.forEach(source => {
-                const parserName = source.parserName || source.source;
-                if (!groupedSources[parserName]) {
-                    groupedSources[parserName] = [];
+            // Remove loading message on first source
+            if (sourcesFound === 1) {
+                sourcesContainer.innerHTML = '';
+            }
+
+            // Create and add the source card
+            const card = this.createSourceCard(manga, source, parserName);
+            sourcesContainer.appendChild(card);
+
+            console.log(`✅ Added source: ${parserName} (${sourcesFound} total)`);
+        };
+
+        // Helper function to show final status
+        const showFinalStatus = () => {
+            if (sourcesFound === 0) {
+                sourcesContainer.innerHTML = '<div class="loading-message">❌ No sources found for this manga. Try searching for it manually.</div>';
+            } else {
+                // Add a small indicator showing search is complete
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'sources-complete-message';
+                statusDiv.innerHTML = `✅ Found ${sourcesFound} source${sourcesFound > 1 ? 's' : ''}`;
+                sourcesContainer.appendChild(statusDiv);
+
+                // Remove the status message after 3 seconds
+                setTimeout(() => {
+                    if (statusDiv.parentNode) {
+                        statusDiv.remove();
+                    }
+                }, 3000);
+            }
+        };
+
+        try {
+            // Progressive search strategy - start multiple searches in parallel
+            const searchPromises = [];
+            let totalSearches = 0;
+            let searchesCompleted = 0;
+
+            // Helper function to update search progress
+            const updateProgress = () => {
+                searchesCompleted++;
+                if (searchesCompleted === totalSearches) {
+                    showFinalStatus();
                 }
-                groupedSources[parserName].push(source);
+            };
+
+            // Strategy 1: Search with title and URL if available
+            if (manga.url) {
+                totalSearches++;
+                searchPromises.push(
+                    window.mangaAPI.findMangaSources(manga.title, manga.url)
+                        .then(sources => {
+                            sources.forEach(addSourceCard);
+                            updateProgress();
+                        })
+                        .catch(error => {
+                            console.warn('Strategy 1 failed:', error.message);
+                            updateProgress();
+                        })
+                );
+            }
+
+            // Strategy 2: Search with title only (in parallel)
+            totalSearches++;
+            searchPromises.push(
+                window.mangaAPI.findMangaSources(manga.title)
+                    .then(sources => {
+                        sources.forEach(addSourceCard);
+                        updateProgress();
+                    })
+                    .catch(error => {
+                        console.warn('Strategy 2 failed:', error.message);
+                        updateProgress();
+                    })
+            );
+
+            // Strategy 3: Search with alternative titles (if available)
+            if (manga.alternativeTitles && manga.alternativeTitles.length > 0) {
+                // Try first 2 alternative titles in parallel
+                manga.alternativeTitles.slice(0, 2).forEach(altTitle => {
+                    totalSearches++;
+                    searchPromises.push(
+                        window.mangaAPI.findMangaSources(altTitle)
+                            .then(sources => {
+                                sources.forEach(addSourceCard);
+                                updateProgress();
+                            })
+                            .catch(error => {
+                                console.warn(`Alternative title "${altTitle}" failed:`, error.message);
+                                updateProgress();
+                            })
+                    );
+                });
+            }
+
+            // Start all searches in parallel - don't wait for completion
+            Promise.all(searchPromises).catch(error => {
+                console.error('Some searches failed:', error);
             });
 
-            // Create cards for each source group
-            Object.entries(groupedSources).forEach(([parserName, sourceList]) => {
-                const bestMatch = sourceList[0]; // Take the first/best match
-                const card = this.createSourceCard(manga, bestMatch, parserName);
-                sourcesContainer.appendChild(card);
-            });
+            // Set a timeout to show results even if some searches are slow
+            setTimeout(() => {
+                if (sourcesFound === 0 && searchesCompleted < totalSearches) {
+                    // Update loading message to show we're still searching
+                    const loadingMsg = sourcesContainer.querySelector('.loading-message');
+                    if (loadingMsg) {
+                        loadingMsg.innerHTML = `🔍 Still searching... (${searchesCompleted}/${totalSearches} completed)`;
+                    }
+                }
+            }, 3000);
 
         } catch (error) {
             console.error('Failed to find manga sources:', error);
-            sourcesContainer.innerHTML = '<div class="loading-message">❌ Failed to find sources</div>';
+            if (sourcesFound === 0) {
+                sourcesContainer.innerHTML = '<div class="loading-message">❌ Failed to find sources</div>';
+            }
         } finally {
             this.hideLoading();
         }
@@ -4087,25 +4119,13 @@ class MangaReader {
         let progressChapter = null;
         let hasProgress = false;
 
-        // First check actual reading progress (from reading in the app)
-        try {
-            const readingProgress = await window.mangaAPI.getReadingProgress(manga.id, manga.source);
-            if (readingProgress && readingProgress.chapterNumber) {
-                progressChapter = readingProgress.chapterNumber;
-                hasProgress = true;
-                console.log(`Found reading progress for ${manga.title}: Chapter ${progressChapter}`);
-            }
-        } catch (error) {
-            console.log('No reading progress found for', manga.title, ':', error.message);
-        }
-
-        // If no reading progress, check imported reading progress
-        if (!hasProgress && manga.importedReadingProgress && manga.importedReadingProgress.chapterNumber > 0) {
+        // Check imported reading progress first
+        if (manga.importedReadingProgress && manga.importedReadingProgress.chapterNumber > 0) {
             progressChapter = manga.importedReadingProgress.chapterNumber;
             hasProgress = true;
         }
-        // Finally check if manga has lastKnownChapter (from CSV or updates)
-        else if (!hasProgress && manga.lastKnownChapter && manga.lastKnownChapter > 0) {
+        // Check if manga has lastKnownChapter (from CSV or updates)
+        else if (manga.lastKnownChapter && manga.lastKnownChapter > 0) {
             progressChapter = manga.lastKnownChapter;
             hasProgress = true;
         }

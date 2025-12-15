@@ -519,9 +519,11 @@ async function checkForNewChapters() {
                             read: false
                         };
 
-                        storage.addNotification(notification);
-                        results.notifications.push(notification);
-                        results.newChapters++;
+                        const notificationAdded = storage.addNotification(notification);
+                        if (notificationAdded) {
+                            results.notifications.push(notification);
+                            results.newChapters++;
+                        }
                     } else {
                         console.log(`No new chapters for ${manga.title} (latest: ${latestChapterFound}, last read: ${lastReadChapter})`);
                     }

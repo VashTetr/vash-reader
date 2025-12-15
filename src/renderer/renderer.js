@@ -2406,8 +2406,7 @@ class MangaReader {
             this.headerVisibilityListener = null;
         }
 
-        // Close any open dropdowns
-        this.closeChapterDropdown();
+        // Close any open dropdowns (removed non-existent closeChapterDropdown call)
 
         this.chapterMarkedComplete = false;
     }

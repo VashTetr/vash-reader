@@ -4087,13 +4087,25 @@ class MangaReader {
         let progressChapter = null;
         let hasProgress = false;
 
-        // Check imported reading progress first
-        if (manga.importedReadingProgress && manga.importedReadingProgress.chapterNumber > 0) {
+        // First check actual reading progress (from reading in the app)
+        try {
+            const readingProgress = await window.mangaAPI.getReadingProgress(manga.id, manga.source);
+            if (readingProgress && readingProgress.chapterNumber) {
+                progressChapter = readingProgress.chapterNumber;
+                hasProgress = true;
+                console.log(`Found reading progress for ${manga.title}: Chapter ${progressChapter}`);
+            }
+        } catch (error) {
+            console.log('No reading progress found for', manga.title, ':', error.message);
+        }
+
+        // If no reading progress, check imported reading progress
+        if (!hasProgress && manga.importedReadingProgress && manga.importedReadingProgress.chapterNumber > 0) {
             progressChapter = manga.importedReadingProgress.chapterNumber;
             hasProgress = true;
         }
-        // Check if manga has lastKnownChapter (from CSV or updates)
-        else if (manga.lastKnownChapter && manga.lastKnownChapter > 0) {
+        // Finally check if manga has lastKnownChapter (from CSV or updates)
+        else if (!hasProgress && manga.lastKnownChapter && manga.lastKnownChapter > 0) {
             progressChapter = manga.lastKnownChapter;
             hasProgress = true;
         }

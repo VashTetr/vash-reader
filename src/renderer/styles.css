@@ -2955,109 +2955,43 @@ body {
     }
 }
 
-/* Chapter Dropdown Styles */
-.nav-dropdown {
-    position: relative;
-    cursor: pointer;
-}
-
-.dropdown-arrow {
-    margin-left: auto;
-    font-size: 10px;
-    transition: transform 0.3s ease;
-}
-
-.nav-dropdown.open .dropdown-arrow {
-    transform: rotate(180deg);
-}
-
-.nav-dropdown-content {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: rgba(35, 35, 35, 0.98);
-    border-radius: 8px;
-    backdrop-filter: blur(15px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    max-height: 300px;
-    overflow-y: auto;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-10px);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 1002;
-}
-
-.nav-dropdown.open .nav-dropdown-content {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-}
-
-.dropdown-chapter-item {
-    padding: 8px 16px;
-    color: #fff;
-    cursor: pointer;
-    font-size: 13px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    transition: all 0.2s ease;
+/* Navigation Chapter Select Styles */
+.nav-chapter-select {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 0.5rem;
+    width: 100%;
 }
 
-.dropdown-chapter-item:last-child {
-    border-bottom: none;
+.nav-chapter-dropdown {
+    flex: 1;
+    background: #333;
+    color: white;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+    min-width: 0;
+    max-width: 180px;
+    cursor: pointer;
 }
 
-.dropdown-chapter-item:hover {
-    background: rgba(255, 107, 107, 0.15);
-    color: #ff6b6b;
+.nav-chapter-dropdown:focus {
+    outline: none;
+    border-color: #ff6b6b;
+    box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
 }
 
-.dropdown-chapter-item.current {
-    background: rgba(255, 107, 107, 0.2);
-    color: #ff6b6b;
-    font-weight: 600;
+.nav-chapter-dropdown option {
+    background: #333;
+    color: white;
+    padding: 8px;
 }
 
-.chapter-number {
-    font-weight: 500;
+.nav-chapter-dropdown option:hover {
+    background: #444;
 }
 
-.chapter-title {
-    opacity: 0.8;
-    font-size: 12px;
-    max-width: 120px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.dropdown-loading {
-    padding: 16px;
-    text-align: center;
-    color: #888;
-    font-size: 12px;
-}
-
-/* Custom scrollbar for dropdown */
-.nav-dropdown-content::-webkit-scrollbar {
-    width: 4px;
-}
-
-.nav-dropdown-content::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 2px;
-}
-
-.nav-dropdown-content::-webkit-scrollbar-thumb {
-    background: rgba(255, 107, 107, 0.5);
-    border-radius: 2px;
-}
-
-.nav-dropdown-content::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 107, 107, 0.7);
+.nav-chapter-dropdown option:checked {
+    background: #ff6b6b;
 }

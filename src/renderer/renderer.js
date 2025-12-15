@@ -99,7 +99,11 @@ class MangaReader {
         addListener('readerNavToggle', 'click', () => this.toggleReaderNavMenu());
         addListener('navHomeBtn', 'click', () => this.navigateFromReaderMenu('home'));
         addListener('navPrevChapterBtn', 'click', () => this.navigateFromReaderMenu('prevChapter'));
-        addListener('navChapterDropdown', 'click', () => this.toggleChapterDropdown());
+        addListener('navChapterSelect', 'change', (e) => {
+            if (e.target.value) {
+                this.goToChapter(parseInt(e.target.value));
+            }
+        });
         addListener('navNextChapterBtn', 'click', () => this.navigateFromReaderMenu('nextChapter'));
 
         // Header buttons
@@ -1242,6 +1246,9 @@ class MangaReader {
                     chapterSelectBottom.appendChild(option);
                 });
             }
+
+            // Update navigation menu chapter selector
+            this.updateNavChapterSelect();
         }
 
         // Update navigation buttons (both top and bottom)
@@ -1514,11 +1521,14 @@ class MangaReader {
         const header = document.querySelector('.reader-controls-top');
         const navMenu = document.getElementById('readerNavMenu');
 
-        if (!header || !navMenu) return;
+        if (!header || !navMenu) {
+            return;
+        }
 
         const headerRect = header.getBoundingClientRect();
         const isHeaderVisible = headerRect.bottom > 0; // Header is visible if bottom is above viewport top
 
+        // Show menu only when header is not visible
         if (isHeaderVisible) {
             navMenu.classList.remove('visible');
         } else {
@@ -1526,108 +1536,37 @@ class MangaReader {
         }
     }
 
-    toggleChapterDropdown() {
-        const dropdown = document.getElementById('navChapterDropdown');
-        const isOpen = dropdown.classList.contains('open');
+    updateNavChapterSelect() {
+        const navChapterSelect = document.getElementById('navChapterSelect');
 
-        if (isOpen) {
-            this.closeChapterDropdown();
-        } else {
-            this.openChapterDropdown();
-        }
-    }
-
-    openChapterDropdown() {
-        const dropdown = document.getElementById('navChapterDropdown');
-        dropdown.classList.add('open');
-
-        // Populate dropdown with chapters
-        this.populateChapterDropdown();
-
-        // Add click outside listener
-        setTimeout(() => {
-            document.addEventListener('click', this.handleDropdownClickOutside);
-        }, 100);
-    }
-
-    closeChapterDropdown() {
-        const dropdown = document.getElementById('navChapterDropdown');
-        dropdown.classList.remove('open');
-
-        // Remove click outside listener
-        document.removeEventListener('click', this.handleDropdownClickOutside);
-    }
-
-    handleDropdownClickOutside = (e) => {
-        const dropdown = document.getElementById('navChapterDropdown');
-        if (!dropdown.contains(e.target)) {
-            this.closeChapterDropdown();
-        }
-    }
-
-    populateChapterDropdown() {
-        const dropdownContent = document.getElementById('navChapterDropdownContent');
-
-        if (!this.allChapters || this.allChapters.length === 0) {
-            dropdownContent.innerHTML = '<div class="dropdown-loading">No chapters available</div>';
+        if (!navChapterSelect || !this.allChapters) {
             return;
         }
 
-        // Create chapter items (show max 10 recent chapters around current)
-        const currentIndex = this.currentChapter?.index || 0;
-        const startIndex = Math.max(0, currentIndex - 5);
-        const endIndex = Math.min(this.allChapters.length, currentIndex + 6);
-        const visibleChapters = this.allChapters.slice(startIndex, endIndex);
+        // Clear existing options except the first one
+        navChapterSelect.innerHTML = '<option value="">Chapter List</option>';
 
-        dropdownContent.innerHTML = '';
-
-        visibleChapters.forEach(chapter => {
-            const item = document.createElement('div');
-            item.className = 'dropdown-chapter-item';
-
+        // Add all chapters
+        this.allChapters.forEach(chapter => {
+            const option = document.createElement('option');
+            option.value = chapter.index;
+            option.textContent = `Ch. ${chapter.number}${chapter.title ? ` - ${chapter.title}` : ''}`;
             if (chapter.number === this.currentChapter?.number) {
-                item.classList.add('current');
+                option.selected = true;
             }
-
-            item.innerHTML = `
-                <span class="chapter-number">Ch. ${chapter.number}</span>
-                <span class="chapter-title">${chapter.title || ''}</span>
-            `;
-
-            item.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.goToChapterFromDropdown(chapter.index);
-                this.closeChapterDropdown();
-            });
-
-            dropdownContent.appendChild(item);
+            navChapterSelect.appendChild(option);
         });
-
-        // Add "View All Chapters" option at the bottom
-        const viewAllItem = document.createElement('div');
-        viewAllItem.className = 'dropdown-chapter-item';
-        viewAllItem.style.borderTop = '1px solid rgba(255, 255, 255, 0.1)';
-        viewAllItem.style.fontWeight = '600';
-        viewAllItem.innerHTML = `
-            <span class="chapter-number">📋</span>
-            <span class="chapter-title">View All Chapters</span>
-        `;
-
-        viewAllItem.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.navigateFromReaderMenu('chapterList');
-            this.closeChapterDropdown();
-        });
-
-        dropdownContent.appendChild(viewAllItem);
     }
 
-    async goToChapterFromDropdown(chapterIndex) {
-        if (this.allChapters && this.allChapters[chapterIndex]) {
-            const chapter = this.allChapters[chapterIndex];
-            await this.readChapter(chapter);
-        }
-    }
+
+
+
+
+
+
+
+
+
 
     // Utility function to throttle scroll events
     throttle(func, limit) {

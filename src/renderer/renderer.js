@@ -95,6 +95,13 @@ class MangaReader {
         addListener('backToSearchResults', 'click', () => this.goBack());
         addListener('backFromReader', 'click', () => this.goBackFromReader());
 
+        // Reader navigation menu
+        addListener('readerNavToggle', 'click', () => this.toggleReaderNavMenu());
+        addListener('navHomeBtn', 'click', () => this.navigateFromReaderMenu('home'));
+        addListener('navPrevChapterBtn', 'click', () => this.navigateFromReaderMenu('prevChapter'));
+        addListener('navChapterDropdown', 'click', () => this.toggleChapterDropdown());
+        addListener('navNextChapterBtn', 'click', () => this.navigateFromReaderMenu('nextChapter'));
+
         // Header buttons
         addListener('followsBtn', 'click', () => this.showFollowsPage());
         addListener('notificationsBtn', 'click', () => this.showNotificationsPage());
@@ -675,7 +682,12 @@ class MangaReader {
                     try {
                         progress = await window.mangaAPI.getReadingProgress(exactMatch.id, exactMatch.source);
                         if (progress && progress.chapterNumber) {
-                            progressChapter = progress.chapterNumber;
+                            // If chapter is completed, suggest next chapter
+                            if (progress.isChapterCompleted) {
+                                progressChapter = parseFloat(progress.chapterNumber) + 1;
+                            } else {
+                                progressChapter = progress.chapterNumber;
+                            }
                             hasProgress = true;
                         }
                     } catch (error) {
@@ -691,7 +703,9 @@ class MangaReader {
 
                 // Add continue button based on progress
                 if (hasProgress) {
-                    continueButton = `<button class="continue-btn-search" onclick="event.stopPropagation()" data-manga-id="${exactMatch.id}" data-source="${exactMatch.source}" data-chapter="${progressChapter}">📖 Continue Ch. ${progressChapter}</button>`;
+                    const isNextChapter = progress && progress.isChapterCompleted;
+                    const buttonText = isNextChapter ? `📖 Next Ch. ${progressChapter}` : `📖 Continue Ch. ${progressChapter}`;
+                    continueButton = `<button class="continue-btn-search" onclick="event.stopPropagation()" data-manga-id="${exactMatch.id}" data-source="${exactMatch.source}" data-chapter="${progressChapter}">${buttonText}</button>`;
                 } else {
                     continueButton = `<button class="start-reading-btn-search" onclick="event.stopPropagation()" data-manga-id="${exactMatch.id}" data-source="${exactMatch.source}">📚 Start Reading</button>`;
                 }
@@ -1000,13 +1014,8 @@ class MangaReader {
             const pages = await window.mangaAPI.getPages(chapter.url, chapter.source);
             this.currentPages = pages;
 
-            // Update reading progress - mark chapter as read
-            await window.mangaAPI.updateReadingProgress(
-                this.currentManga.id,
-                this.currentManga.source,
-                chapter.number,
-                pages.length // Mark all pages as read since we show them all
-            );
+            // Initialize reading progress tracking (will be updated as user scrolls)
+            this.initializeProgressTracking();
 
             // Add to last read with current chapter
             await window.mangaAPI.addToLastRead(this.currentManga, chapter);
@@ -1028,7 +1037,100 @@ class MangaReader {
 
         await this.updateReaderDisplay();
         this.showReader(fromPage);
+
+        // Resume at saved position if available
+        await this.resumeAtSavedPosition();
+
         this.hideLoading(); // Hide loading after pages are displayed
+    }
+
+    async resumeAtSavedPosition() {
+        if (!this.currentManga || !this.currentChapter) return;
+
+        try {
+            const progress = await window.mangaAPI.getReadingProgress(this.currentManga.id, this.currentManga.source);
+
+            if (progress &&
+                progress.chapterNumber == this.currentChapter.number &&
+                progress.pageNumber &&
+                progress.scrollPosition !== undefined) {
+
+                console.log(`Resuming at page ${progress.pageNumber}/${progress.totalPages}, scroll: ${(progress.scrollPosition * 100).toFixed(1)}%`);
+
+                // Wait for images to load before scrolling
+                setTimeout(() => {
+                    this.scrollToSavedPosition(progress.pageNumber, progress.scrollPosition);
+                }, 1500); // Give more time for images to load
+
+                // Show resume indicator
+                this.showResumeIndicator(progress.pageNumber, progress.totalPages, progress.scrollPosition);
+            }
+        } catch (error) {
+            console.error('Failed to resume at saved position:', error);
+        }
+    }
+
+    scrollToSavedPosition(pageNumber, scrollPosition) {
+        const pageContainer = document.getElementById('pageContainer');
+        if (!pageContainer) return;
+
+        const pages = pageContainer.querySelectorAll('.manga-page-container');
+        if (pages.length === 0 || pageNumber > pages.length) return;
+
+        const targetPage = pages[pageNumber - 1]; // Convert to 0-based index
+        if (!targetPage) return;
+
+        const rect = targetPage.getBoundingClientRect();
+        const pageTop = window.pageYOffset + rect.top;
+        const pageHeight = rect.height;
+
+        // Calculate exact scroll position within the page
+        const targetScrollTop = pageTop + (pageHeight * scrollPosition);
+
+        // Smooth scroll to position
+        window.scrollTo({
+            top: targetScrollTop,
+            behavior: 'smooth'
+        });
+    }
+
+    showResumeIndicator(pageNumber, totalPages, scrollPosition) {
+        const indicator = document.createElement('div');
+        indicator.className = 'resume-indicator';
+        const scrollPercent = (scrollPosition * 100).toFixed(0);
+        indicator.innerHTML = `📖 Resumed at page ${pageNumber}/${totalPages} (${scrollPercent}% through page)`;
+        indicator.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2196F3;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        `;
+
+        document.body.appendChild(indicator);
+
+        // Animate in
+        setTimeout(() => {
+            indicator.style.opacity = '1';
+        }, 100);
+
+        // Remove after 4 seconds
+        setTimeout(() => {
+            indicator.style.opacity = '0';
+            setTimeout(() => {
+                if (indicator.parentNode) {
+                    indicator.parentNode.removeChild(indicator);
+                }
+            }, 300);
+        }, 4000);
     }
 
     async updateReaderDisplay() {
@@ -1159,6 +1261,10 @@ class MangaReader {
     }
 
     async previousChapter() {
+        // Save current progress before changing chapters
+        this.updateReadingProgressFromScroll();
+        console.log('💾 Progress saved before previous chapter');
+
         const currentIndex = this.currentChapter.index || 0;
         if (currentIndex > 0 && this.allChapters) {
             const prevChapter = this.allChapters[currentIndex - 1];
@@ -1167,6 +1273,10 @@ class MangaReader {
     }
 
     async nextChapter() {
+        // Save current progress before changing chapters
+        this.updateReadingProgressFromScroll();
+        console.log('💾 Progress saved before next chapter');
+
         const currentIndex = this.currentChapter.index || 0;
         if (currentIndex < (this.allChapters?.length - 1 || 0) && this.allChapters) {
             const nextChapter = this.allChapters[currentIndex + 1];
@@ -1183,6 +1293,354 @@ class MangaReader {
 
     isReaderActive() {
         return !document.getElementById('reader').classList.contains('hidden');
+    }
+
+    initializeProgressTracking() {
+        // Remove existing scroll listener if any
+        if (this.progressTrackingListener) {
+            window.removeEventListener('scroll', this.progressTrackingListener);
+        }
+
+        // Add scroll listener for progress tracking (more frequent)
+        this.progressTrackingListener = this.throttle(() => {
+            this.updateReadingProgressFromScroll();
+        }, 500); // Update every 500ms for more responsiveness
+
+        window.addEventListener('scroll', this.progressTrackingListener);
+
+        // Add additional progress tracking triggers
+        this.setupAdditionalProgressTracking();
+
+        // Setup header visibility tracking
+        this.setupHeaderVisibilityTracking();
+
+        // Initial progress update
+        setTimeout(() => {
+            this.updateReadingProgressFromScroll();
+        }, 1000); // Give time for images to load
+    }
+
+    updateReadingProgressFromScroll() {
+        if (!this.isReaderActive() || !this.currentManga || !this.currentChapter || !this.currentPages) {
+            return;
+        }
+
+        const pageContainer = document.getElementById('pageContainer');
+        if (!pageContainer) return;
+
+        const pages = pageContainer.querySelectorAll('.manga-page-container');
+        if (pages.length === 0) return;
+
+        // Calculate which page is currently visible and scroll position
+        const viewportHeight = window.innerHeight;
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const viewportCenter = scrollTop + viewportHeight / 2;
+
+        let currentPageNumber = 1;
+        let scrollPosition = 0;
+
+        // Find the page that's most visible in the viewport (improved algorithm)
+        let maxVisibleArea = 0;
+        let bestPageIndex = 0;
+        let bestScrollPosition = 0;
+
+        for (let i = 0; i < pages.length; i++) {
+            const page = pages[i];
+            const rect = page.getBoundingClientRect();
+            const pageTop = scrollTop + rect.top;
+            const pageBottom = pageTop + rect.height;
+
+            // Calculate how much of this page is visible in the viewport
+            const visibleTop = Math.max(pageTop, scrollTop);
+            const visibleBottom = Math.min(pageBottom, scrollTop + viewportHeight);
+            const visibleArea = Math.max(0, visibleBottom - visibleTop);
+
+            // If this page has more visible area, it's the current page
+            if (visibleArea > maxVisibleArea) {
+                maxVisibleArea = visibleArea;
+                bestPageIndex = i;
+
+                // Calculate more accurate scroll position within this page
+                if (rect.height > 0) {
+                    // How far through the page is the viewport center?
+                    const pageProgress = Math.max(0, Math.min(1, (viewportCenter - pageTop) / rect.height));
+                    bestScrollPosition = pageProgress;
+                } else {
+                    bestScrollPosition = 0;
+                }
+            }
+        }
+
+        currentPageNumber = bestPageIndex + 1;
+        scrollPosition = bestScrollPosition;
+
+        // If we're past all pages, we're on the last page at the bottom
+        if (viewportCenter > pages[pages.length - 1].getBoundingClientRect().bottom + scrollTop) {
+            currentPageNumber = pages.length;
+            scrollPosition = 1.0;
+        }
+
+        // Update reading progress
+        this.updateReadingProgressData(currentPageNumber, scrollPosition);
+    }
+
+    async updateReadingProgressData(pageNumber, scrollPosition) {
+        if (!this.currentManga || !this.currentChapter || !this.currentPages) return;
+
+        const totalPages = this.currentPages.length;
+
+        try {
+            await window.mangaAPI.updateReadingProgress(
+                this.currentManga.id,
+                this.currentManga.source,
+                this.currentChapter.number,
+                pageNumber,
+                scrollPosition,
+                totalPages
+            );
+
+            // Debug logging for progress tracking
+            console.log(`📊 Progress: Ch.${this.currentChapter.number}, Page ${pageNumber}/${totalPages}, Scroll: ${(scrollPosition * 100).toFixed(1)}%`);
+
+            // Check if chapter is completed (on last page and scrolled to bottom)
+            const isChapterCompleted = pageNumber >= totalPages && scrollPosition >= 0.9;
+
+            if (isChapterCompleted && !this.chapterMarkedComplete) {
+                this.chapterMarkedComplete = true;
+                console.log(`Chapter ${this.currentChapter.number} marked as completed`);
+
+                // Show subtle completion indicator
+                this.showChapterCompletionIndicator();
+            }
+        } catch (error) {
+            console.error('Failed to update reading progress:', error);
+        }
+    }
+
+    showChapterCompletionIndicator() {
+        // Create a subtle completion indicator
+        const indicator = document.createElement('div');
+        indicator.className = 'chapter-completion-indicator';
+        indicator.innerHTML = '✓ Chapter completed';
+        indicator.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        `;
+
+        document.body.appendChild(indicator);
+
+        // Animate in
+        setTimeout(() => {
+            indicator.style.opacity = '1';
+        }, 100);
+
+        // Remove after 3 seconds
+        setTimeout(() => {
+            indicator.style.opacity = '0';
+            setTimeout(() => {
+                if (indicator.parentNode) {
+                    indicator.parentNode.removeChild(indicator);
+                }
+            }, 300);
+        }, 3000);
+    }
+
+    setupAdditionalProgressTracking() {
+        // Track progress on page visibility change (when user switches tabs/apps)
+        this.visibilityChangeListener = () => {
+            if (document.visibilityState === 'hidden') {
+                // User is leaving the page, save current progress
+                this.updateReadingProgressFromScroll();
+                console.log('📱 Progress saved on page visibility change');
+            }
+        };
+        document.addEventListener('visibilitychange', this.visibilityChangeListener);
+
+        // Track progress on window blur (when user clicks outside)
+        this.windowBlurListener = () => {
+            this.updateReadingProgressFromScroll();
+            console.log('📱 Progress saved on window blur');
+        };
+        window.addEventListener('blur', this.windowBlurListener);
+
+        // Periodic progress saving (every 10 seconds)
+        this.progressInterval = setInterval(() => {
+            if (this.isReaderActive()) {
+                this.updateReadingProgressFromScroll();
+                console.log('⏰ Periodic progress save');
+            }
+        }, 10000); // Every 10 seconds
+
+        // Track progress on mouse movement (user is actively reading)
+        let mouseTimeout;
+        this.mouseMoveListener = () => {
+            clearTimeout(mouseTimeout);
+            mouseTimeout = setTimeout(() => {
+                this.updateReadingProgressFromScroll();
+                console.log('🖱️ Progress saved after mouse activity');
+            }, 2000); // Save 2 seconds after mouse stops moving
+        };
+        document.addEventListener('mousemove', this.mouseMoveListener);
+
+        // Track progress on keyboard activity
+        this.keyboardListener = () => {
+            this.updateReadingProgressFromScroll();
+            console.log('⌨️ Progress saved on keyboard activity');
+        };
+        document.addEventListener('keydown', this.keyboardListener);
+    }
+
+    setupHeaderVisibilityTracking() {
+        // Track header visibility to show/hide navigation menu
+        this.headerVisibilityListener = this.throttle(() => {
+            this.updateNavMenuVisibility();
+        }, 100); // Check every 100ms for smooth visibility changes
+
+        window.addEventListener('scroll', this.headerVisibilityListener);
+    }
+
+    updateNavMenuVisibility() {
+        if (!this.isReaderActive()) return;
+
+        const header = document.querySelector('.reader-controls-top');
+        const navMenu = document.getElementById('readerNavMenu');
+
+        if (!header || !navMenu) return;
+
+        const headerRect = header.getBoundingClientRect();
+        const isHeaderVisible = headerRect.bottom > 0; // Header is visible if bottom is above viewport top
+
+        if (isHeaderVisible) {
+            navMenu.classList.remove('visible');
+        } else {
+            navMenu.classList.add('visible');
+        }
+    }
+
+    toggleChapterDropdown() {
+        const dropdown = document.getElementById('navChapterDropdown');
+        const isOpen = dropdown.classList.contains('open');
+
+        if (isOpen) {
+            this.closeChapterDropdown();
+        } else {
+            this.openChapterDropdown();
+        }
+    }
+
+    openChapterDropdown() {
+        const dropdown = document.getElementById('navChapterDropdown');
+        dropdown.classList.add('open');
+
+        // Populate dropdown with chapters
+        this.populateChapterDropdown();
+
+        // Add click outside listener
+        setTimeout(() => {
+            document.addEventListener('click', this.handleDropdownClickOutside);
+        }, 100);
+    }
+
+    closeChapterDropdown() {
+        const dropdown = document.getElementById('navChapterDropdown');
+        dropdown.classList.remove('open');
+
+        // Remove click outside listener
+        document.removeEventListener('click', this.handleDropdownClickOutside);
+    }
+
+    handleDropdownClickOutside = (e) => {
+        const dropdown = document.getElementById('navChapterDropdown');
+        if (!dropdown.contains(e.target)) {
+            this.closeChapterDropdown();
+        }
+    }
+
+    populateChapterDropdown() {
+        const dropdownContent = document.getElementById('navChapterDropdownContent');
+
+        if (!this.allChapters || this.allChapters.length === 0) {
+            dropdownContent.innerHTML = '<div class="dropdown-loading">No chapters available</div>';
+            return;
+        }
+
+        // Create chapter items (show max 10 recent chapters around current)
+        const currentIndex = this.currentChapter?.index || 0;
+        const startIndex = Math.max(0, currentIndex - 5);
+        const endIndex = Math.min(this.allChapters.length, currentIndex + 6);
+        const visibleChapters = this.allChapters.slice(startIndex, endIndex);
+
+        dropdownContent.innerHTML = '';
+
+        visibleChapters.forEach(chapter => {
+            const item = document.createElement('div');
+            item.className = 'dropdown-chapter-item';
+
+            if (chapter.number === this.currentChapter?.number) {
+                item.classList.add('current');
+            }
+
+            item.innerHTML = `
+                <span class="chapter-number">Ch. ${chapter.number}</span>
+                <span class="chapter-title">${chapter.title || ''}</span>
+            `;
+
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.goToChapterFromDropdown(chapter.index);
+                this.closeChapterDropdown();
+            });
+
+            dropdownContent.appendChild(item);
+        });
+
+        // Add "View All Chapters" option at the bottom
+        const viewAllItem = document.createElement('div');
+        viewAllItem.className = 'dropdown-chapter-item';
+        viewAllItem.style.borderTop = '1px solid rgba(255, 255, 255, 0.1)';
+        viewAllItem.style.fontWeight = '600';
+        viewAllItem.innerHTML = `
+            <span class="chapter-number">📋</span>
+            <span class="chapter-title">View All Chapters</span>
+        `;
+
+        viewAllItem.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.navigateFromReaderMenu('chapterList');
+            this.closeChapterDropdown();
+        });
+
+        dropdownContent.appendChild(viewAllItem);
+    }
+
+    async goToChapterFromDropdown(chapterIndex) {
+        if (this.allChapters && this.allChapters[chapterIndex]) {
+            const chapter = this.allChapters[chapterIndex];
+            await this.readChapter(chapter);
+        }
+    }
+
+    // Utility function to throttle scroll events
+    throttle(func, limit) {
+        let inThrottle;
+        return function () {
+            const args = arguments;
+            const context = this;
+            if (!inThrottle) {
+                func.apply(context, args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
+        }
     }
 
     showLoading(message = 'Loading...') {
@@ -1627,6 +2085,12 @@ class MangaReader {
 
         this.hideAllViews();
         document.getElementById('reader').classList.remove('hidden');
+
+        // Initialize navigation menu state
+        setTimeout(() => {
+            this.updateNavMenuButtonStates();
+            this.updateNavMenuVisibility();
+        }, 100);
     }
 
     async populateMangaDetails(manga, continueInfo = null) {
@@ -1947,6 +2411,12 @@ class MangaReader {
     }
 
     hideAllViews() {
+        // Clean up reader-specific listeners when leaving reader
+        if (!document.getElementById('reader').classList.contains('hidden')) {
+            this.cleanupProgressTracking();
+            this.closeReaderNavMenu(); // Close navigation menu
+        }
+
         document.getElementById('homePage').classList.add('hidden');
         document.getElementById('searchResults').classList.add('hidden');
         document.getElementById('mangaDetails').classList.add('hidden');
@@ -1955,6 +2425,188 @@ class MangaReader {
         document.getElementById('reader').classList.add('hidden');
         document.getElementById('followsPage').classList.add('hidden');
         document.getElementById('notificationsPage').classList.add('hidden');
+    }
+
+    cleanupProgressTracking() {
+        // Remove scroll listener
+        if (this.progressTrackingListener) {
+            window.removeEventListener('scroll', this.progressTrackingListener);
+            this.progressTrackingListener = null;
+        }
+
+        // Remove additional progress tracking listeners
+        if (this.visibilityChangeListener) {
+            document.removeEventListener('visibilitychange', this.visibilityChangeListener);
+            this.visibilityChangeListener = null;
+        }
+
+        if (this.windowBlurListener) {
+            window.removeEventListener('blur', this.windowBlurListener);
+            this.windowBlurListener = null;
+        }
+
+        if (this.mouseMoveListener) {
+            document.removeEventListener('mousemove', this.mouseMoveListener);
+            this.mouseMoveListener = null;
+        }
+
+        if (this.keyboardListener) {
+            document.removeEventListener('keydown', this.keyboardListener);
+            this.keyboardListener = null;
+        }
+
+        // Clear periodic interval
+        if (this.progressInterval) {
+            clearInterval(this.progressInterval);
+            this.progressInterval = null;
+        }
+
+        // Remove header visibility listener
+        if (this.headerVisibilityListener) {
+            window.removeEventListener('scroll', this.headerVisibilityListener);
+            this.headerVisibilityListener = null;
+        }
+
+        // Close any open dropdowns
+        this.closeChapterDropdown();
+
+        this.chapterMarkedComplete = false;
+    }
+
+    toggleReaderNavMenu() {
+        const menu = document.getElementById('readerNavMenu');
+        const isOpen = menu.classList.contains('open');
+
+        if (isOpen) {
+            this.closeReaderNavMenu();
+        } else {
+            this.openReaderNavMenu();
+        }
+    }
+
+    openReaderNavMenu() {
+        const menu = document.getElementById('readerNavMenu');
+        menu.classList.add('open');
+
+        // Update button states based on current chapter
+        this.updateNavMenuButtonStates();
+
+        // Add overlay to close menu when clicking outside
+        this.addNavMenuOverlay();
+
+        // Add escape key listener
+        this.navMenuEscapeListener = (e) => {
+            if (e.key === 'Escape') {
+                this.closeReaderNavMenu();
+            }
+        };
+        document.addEventListener('keydown', this.navMenuEscapeListener);
+    }
+
+    closeReaderNavMenu() {
+        const menu = document.getElementById('readerNavMenu');
+        menu.classList.remove('open');
+
+        // Remove overlay
+        this.removeNavMenuOverlay();
+
+        // Remove escape key listener
+        if (this.navMenuEscapeListener) {
+            document.removeEventListener('keydown', this.navMenuEscapeListener);
+            this.navMenuEscapeListener = null;
+        }
+    }
+
+    addNavMenuOverlay() {
+        // Remove existing overlay if any
+        this.removeNavMenuOverlay();
+
+        const overlay = document.createElement('div');
+        overlay.className = 'reader-nav-overlay active';
+        overlay.id = 'readerNavOverlay';
+
+        overlay.addEventListener('click', () => {
+            this.closeReaderNavMenu();
+        });
+
+        document.body.appendChild(overlay);
+    }
+
+    removeNavMenuOverlay() {
+        const overlay = document.getElementById('readerNavOverlay');
+        if (overlay) {
+            overlay.classList.remove('active');
+            setTimeout(() => {
+                if (overlay.parentNode) {
+                    overlay.parentNode.removeChild(overlay);
+                }
+            }, 300);
+        }
+    }
+
+    updateNavMenuButtonStates() {
+        if (!this.allChapters || !this.currentChapter) return;
+
+        const currentIndex = this.currentChapter.index || 0;
+        const isFirstChapter = currentIndex === 0;
+        const isLastChapter = currentIndex >= (this.allChapters.length - 1);
+
+        // Update button states
+        const prevBtn = document.getElementById('navPrevChapterBtn');
+        const nextBtn = document.getElementById('navNextChapterBtn');
+
+        if (prevBtn) {
+            prevBtn.disabled = isFirstChapter;
+        }
+
+        if (nextBtn) {
+            nextBtn.disabled = isLastChapter;
+        }
+    }
+
+    async navigateFromReaderMenu(action) {
+        // Save progress before navigation
+        this.updateReadingProgressFromScroll();
+        console.log('💾 Progress saved before menu navigation');
+
+        // Close menu first
+        this.closeReaderNavMenu();
+
+        // Add small delay for smooth animation
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        switch (action) {
+            case 'home':
+                this.showHomePage();
+                break;
+
+            case 'prevChapter':
+                if (this.allChapters && this.currentChapter) {
+                    const currentIndex = this.currentChapter.index || 0;
+                    if (currentIndex > 0) {
+                        await this.previousChapter();
+                    }
+                }
+                break;
+
+            case 'chapterList':
+                if (this.currentManga && this.allChapters) {
+                    this.showChapterList();
+                }
+                break;
+
+            case 'nextChapter':
+                if (this.allChapters && this.currentChapter) {
+                    const currentIndex = this.currentChapter.index || 0;
+                    if (currentIndex < (this.allChapters.length - 1)) {
+                        await this.nextChapter();
+                    }
+                }
+                break;
+
+            default:
+                console.warn('Unknown navigation action:', action);
+        }
     }
 
     goBack() {
@@ -1987,6 +2639,10 @@ class MangaReader {
     }
 
     goBackFromReader() {
+        // Save progress before leaving reader
+        this.updateReadingProgressFromScroll();
+        console.log('💾 Progress saved before leaving reader');
+
         // Go back from reader - should go to chapter list or manga details
         if (this.navigationHistory.length > 0) {
             const previousPage = this.navigationHistory.pop();
@@ -2578,12 +3234,14 @@ class MangaReader {
                 this.currentManga = manga;
                 this.currentSource = source;
 
-                // Store reading progress in the new format
+                // Store reading progress in the new format (starting position)
                 await window.mangaAPI.updateReadingProgress(
                     source.id || source.slug,
                     source.source,
                     targetChapter,
-                    1
+                    1, // page number
+                    0, // scroll position (start)
+                    1  // total pages (will be updated when chapter loads)
                 );
 
                 // Add to last read

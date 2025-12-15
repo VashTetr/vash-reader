@@ -217,6 +217,40 @@
             </div>
 
             <div id="reader" class="reader hidden">
+                <!-- Collapsible Navigation Menu -->
+                <div id="readerNavMenu" class="reader-nav-menu">
+                    <button id="readerNavToggle" class="reader-nav-toggle" title="Navigation Menu">
+                        <span class="nav-arrow">▶</span>
+                    </button>
+                    <div id="readerNavContent" class="reader-nav-content">
+                        <div class="nav-menu-header">
+                            <h3>Navigation</h3>
+                        </div>
+                        <div class="nav-menu-items">
+                            <button id="navHomeBtn" class="nav-menu-item">
+                                <span class="nav-icon">🏠</span>
+                                <span class="nav-text">Vash Reader</span>
+                            </button>
+                            <button id="navPrevChapterBtn" class="nav-menu-item">
+                                <span class="nav-icon">⬅️</span>
+                                <span class="nav-text">Previous Chapter</span>
+                            </button>
+                            <div id="navChapterDropdown" class="nav-menu-item nav-dropdown">
+                                <span class="nav-icon">📋</span>
+                                <span class="nav-text">Chapter List</span>
+                                <span class="dropdown-arrow">▼</span>
+                                <div id="navChapterDropdownContent" class="nav-dropdown-content">
+                                    <div class="dropdown-loading">Loading chapters...</div>
+                                </div>
+                            </div>
+                            <button id="navNextChapterBtn" class="nav-menu-item">
+                                <span class="nav-icon">➡️</span>
+                                <span class="nav-text">Next Chapter</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="reader-controls reader-controls-top">
                     <button id="backFromReader" class="back-btn">← Back</button>
                     <span id="pageInfo"></span>

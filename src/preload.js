@@ -22,8 +22,8 @@ contextBridge.exposeInMainWorld('mangaAPI', {
     // Storage
     getLastRead: () => ipcRenderer.invoke('get-last-read'),
     addToLastRead: (manga, chapter) => ipcRenderer.invoke('add-to-last-read', manga, chapter),
-    updateReadingProgress: (mangaId, source, chapterNumber, pageNumber) =>
-        ipcRenderer.invoke('update-reading-progress', mangaId, source, chapterNumber, pageNumber),
+    updateReadingProgress: (mangaId, source, chapterNumber, pageNumber, scrollPosition, totalPages) =>
+        ipcRenderer.invoke('update-reading-progress', mangaId, source, chapterNumber, pageNumber, scrollPosition, totalPages),
     getReadingProgress: (mangaId, source) => ipcRenderer.invoke('get-reading-progress', mangaId, source),
     findMangaSources: (mangaTitle, mangaUrl) => ipcRenderer.invoke('find-manga-sources', mangaTitle, mangaUrl),
     getMangaDetails: (mangaUrl) => ipcRenderer.invoke('get-manga-details', mangaUrl),

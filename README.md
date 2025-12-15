@@ -19,8 +19,13 @@ A local Electron-based manga reader that aggregates content from various sources
 - **Advanced search** - Filter by genre, type, demographics, status, year, and more using Comick API
 - **Chapter browsing** - View all available chapters
 - **Page reader** - Clean reading interface with navigation
+- **Smart navigation menu** - Auto-hiding slide-out menu with chapter dropdown, only visible when header is scrolled out of view
 - **Smart back navigation** - Back button in reader remembers your path (search → details → chapters → reader)
-- **Progress tracking** - Automatically saves reading progress
+- **Enhanced progress tracking** - Remembers exact page and scroll position within chapters
+- **Smart continue buttons** - Shows "Continue Ch. X" or "Next Ch. X" based on completion status
+- **Resume at exact position** - Returns to the exact page and scroll position where you left off
+- **Chapter completion detection** - Automatically detects when you finish a chapter (90% scrolled on last page)
+- **Visual progress indicators** - Shows completion and resume notifications
 - **Keyboard shortcuts** - Arrow keys for navigation, Escape to go back
 
 ### 💾 **Data Management**

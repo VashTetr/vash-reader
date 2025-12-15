@@ -214,9 +214,9 @@ ipcMain.handle('add-to-last-read', async (event, manga, chapter) => {
     }
 });
 
-ipcMain.handle('update-reading-progress', async (event, mangaId, source, chapterNumber, pageNumber) => {
+ipcMain.handle('update-reading-progress', async (event, mangaId, source, chapterNumber, pageNumber, scrollPosition, totalPages) => {
     try {
-        storage.updateReadingProgress(mangaId, source, chapterNumber, pageNumber);
+        storage.updateReadingProgress(mangaId, source, chapterNumber, pageNumber, scrollPosition, totalPages);
         return { success: true };
     } catch (error) {
         console.error('Update progress error:', error);

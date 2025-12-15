@@ -60,11 +60,18 @@ class Storage {
         return this.data.lastRead.slice(0, limit);
     }
 
-    updateReadingProgress(mangaId, source, chapterNumber, pageNumber = 1) {
+    updateReadingProgress(mangaId, source, chapterNumber, pageNumber = 1, scrollPosition = 0, totalPages = 1) {
         const key = `${source}:${mangaId}`;
+
+        // Determine if chapter is completed (on last page and scrolled to bottom)
+        const isChapterCompleted = pageNumber >= totalPages && scrollPosition >= 0.9; // 90% scrolled on last page
+
         this.data.readingProgress[key] = {
             chapterNumber,
             pageNumber,
+            scrollPosition, // 0.0 to 1.0 representing scroll percentage
+            totalPages,
+            isChapterCompleted,
             updatedAt: new Date().toISOString()
         };
         this.saveData();

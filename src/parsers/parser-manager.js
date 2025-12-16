@@ -2,7 +2,7 @@ const MangadexParser = require('./mangadex-parser');
 const TrueMangaParser = require('./truemanga-parser');
 const MangaBuddyParser = require('./mangabuddy-parser');
 const MangaTownParser = require('./mangatown-parser');
-// const BatoToParser = require('./batoto-parser'); // Temporarily disabled - 522 errors
+const BatoToParser = require('./batoto-parser');
 const ComickParser = require('./comick-parser');
 const MangakakalotParser = require('./mangakakalot-parser');
 const AsuraScansParser = require('./asurascans-parser');
@@ -14,7 +14,7 @@ const TooniTubeParser = require('./toonitube-parser');
 const ToonilyParser = require('./toonily-parser');
 const MangaParkParser = require('./mangapark-parser');
 // Additional parsers
-// const MangaHereParser = require('./mangahere-parser'); // Temporarily disabled - 522 errors
+const MangaHereParser = require('./mangahere-parser');
 
 class ParserManager {
     constructor() {
@@ -23,7 +23,7 @@ class ParserManager {
             new TrueMangaParser(),
             new MangaBuddyParser(),
             new MangaTownParser(),
-            // new BatoToParser(), // Temporarily disabled - 522 errors
+            new BatoToParser(),
             new ComickParser(),
             new MangakakalotParser(),
             new AsuraScansParser(),
@@ -32,8 +32,8 @@ class ParserManager {
             new ManhwaXParser(),
             new TooniTubeParser(),
             new ToonilyParser(),
-            new MangaParkParser()
-            // new MangaHereParser() // Temporarily disabled - 522 errors
+            new MangaParkParser(),
+            new MangaHereParser()
         ];
     }
 
@@ -50,6 +50,7 @@ class ParserManager {
 
     async searchAll(query, maxResults = 10) {
         const allResults = [];
+        const seenTitles = new Map(); // Track seen manga titles for deduplication
 
         // Search all parsers except Comick (which is for home page only) in parallel
         const searchParsers = this.parsers.filter(parser => parser.name !== 'Comick');
@@ -65,12 +66,45 @@ class ParserManager {
 
         const results = await Promise.all(searchPromises);
 
-        // Flatten and combine results
+        // Flatten and deduplicate results based on title similarity
         results.forEach(parserResults => {
-            allResults.push(...parserResults);
+            parserResults.forEach(manga => {
+                const normalizedTitle = this.normalizeTitle(manga.title);
+
+                if (seenTitles.has(normalizedTitle)) {
+                    // Manga already exists, add this source to the existing entry
+                    const existingManga = seenTitles.get(normalizedTitle);
+                    if (!existingManga.sources) {
+                        existingManga.sources = [existingManga.source];
+                    }
+                    existingManga.sources.push(manga.source);
+                } else {
+                    // New manga, add to results
+                    seenTitles.set(normalizedTitle, manga);
+                    allResults.push(manga);
+                }
+            });
         });
 
         return allResults;
+    }
+
+    // Helper method to normalize titles for deduplication
+    normalizeTitle(title) {
+        if (!title) return '';
+
+        return title
+            .toLowerCase()
+            .trim()
+            // Replace hyphens and underscores with spaces
+            .replace(/[-_]/g, ' ')
+            // Remove other punctuation and special characters
+            .replace(/[^\w\s]/g, '')
+            // Replace multiple spaces with single space
+            .replace(/\s+/g, ' ')
+            // Remove common words that might cause differences
+            .replace(/\b(the|a|an)\b/g, '')
+            .trim();
     }
 
     async searchBySource(query, sourceName, page = 1, limit = 50) {

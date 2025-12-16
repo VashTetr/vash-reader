@@ -2597,29 +2597,7 @@ class MangaReader {
         }
     }
 
-    createSourceCard(manga, source, parserName) {
-        const card = document.createElement('div');
-        card.className = 'source-card';
 
-        card.innerHTML = `
-            <div class="source-name">${parserName}</div>
-            <div class="source-url">${source.url}</div>
-            <div class="source-chapters">Chapters: <span class="chapter-count">Checking...</span></div>
-            <div class="source-status checking">Checking</div>
-        `;
-
-        // Add click handler
-        card.addEventListener('click', () => {
-            if (!card.classList.contains('loading')) {
-                this.selectMangaFromSource(manga, source);
-            }
-        });
-
-        // Check chapter count asynchronously
-        this.checkSourceChapters(card, source, parserName);
-
-        return card;
-    }
 
     async checkSourceChapters(card, source, parserName) {
         try {
@@ -2630,7 +2608,7 @@ class MangaReader {
 
             if (chapters.length > 0) {
                 chapterCountElement.textContent = chapters.length;
-                statusElement.textContent = 'Available';
+                statusElement.textContent = `${chapters.length} Chapter${chapters.length !== 1 ? 's' : ''} Available`;
                 statusElement.className = 'source-status available';
 
                 // Update the main chapter count if this is the first successful source
@@ -2640,7 +2618,7 @@ class MangaReader {
                 }
             } else {
                 chapterCountElement.textContent = '0';
-                statusElement.textContent = 'No Chapters';
+                statusElement.textContent = '0 Chapters Available';
                 statusElement.className = 'source-status unavailable';
                 card.classList.add('loading'); // Disable clicking
             }
@@ -3007,13 +2985,22 @@ class MangaReader {
         card.innerHTML = `
             <div class="source-card-header">
                 <div class="source-name">${parserName}</div>
-                <div class="source-chapters">Available</div>
+                <div class="source-chapters">Chapters: <span class="chapter-count">Checking...</span></div>
             </div>
             <div class="source-manga-title">${source.title}</div>
             <div class="source-manga-description">${source.description || 'No description available'}</div>
+            <div class="source-status checking">Checking</div>
         `;
 
-        card.addEventListener('click', () => this.selectMangaFromSource(originalManga, source));
+        card.addEventListener('click', () => {
+            if (!card.classList.contains('loading')) {
+                this.selectMangaFromSource(originalManga, source);
+            }
+        });
+
+        // Check chapter count asynchronously
+        this.checkSourceChapters(card, source, parserName);
+
         return card;
     }
 

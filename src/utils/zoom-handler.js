@@ -1,7 +1,7 @@
 class ZoomHandler {
     constructor() {
         this.currentZoom = 1.0;
-        this.minZoom = 1.0; // Prevent zooming below 100%
+        this.minZoom = 0.5; // Allow zooming down to 50%
         this.maxZoom = 5.0;
         this.zoomStep = 0.1;
         this.isZooming = false;
@@ -136,8 +136,8 @@ class ZoomHandler {
     initializeDragPan() {
         // Mouse down - start dragging
         document.addEventListener('mousedown', (e) => {
-            // Only enable drag when zoomed in above 100% AND in reader mode
-            if (this.currentZoom > 1.0 && this.isReaderActive()) {
+            // Enable drag when zoomed (in or out) AND in reader mode
+            if (this.currentZoom !== 1.0 && this.isReaderActive()) {
                 // Don't interfere with UI elements (buttons, inputs, etc.)
                 if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' ||
                     e.target.tagName === 'SELECT' || e.target.tagName === 'A' ||
@@ -159,7 +159,7 @@ class ZoomHandler {
 
         // Mouse move - handle dragging
         document.addEventListener('mousemove', (e) => {
-            if (this.isDragging && this.currentZoom > 1.0 && this.isReaderActive()) {
+            if (this.isDragging && this.currentZoom !== 1.0 && this.isReaderActive()) {
                 const deltaX = e.clientX - this.dragStartX;
                 const deltaY = e.clientY - this.dragStartY;
 
@@ -244,23 +244,32 @@ class ZoomHandler {
     applyZoomWithoutScroll(zoomLevel) {
         this.currentZoom = zoomLevel;
 
-        // Apply zoom to the main app container instead of body
         const appContainer = document.querySelector('.app') || document.body;
         const body = document.body;
 
-        // Use top-left origin for consistent behavior
-        appContainer.style.transformOrigin = '0 0';
-        appContainer.style.transform = `scale(${zoomLevel})`;
-
-        // Handle background and viewport coverage for zoom levels >= 100%
-        if (zoomLevel > 1.0) {
+        if (zoomLevel < 1.0) {
+            // Zoom out: Apply zoom only to manga images, not the entire page
+            this.applyImageZoom(zoomLevel);
+            // Reset app container transform
+            appContainer.style.transform = '';
+            appContainer.style.transformOrigin = '';
+            body.classList.remove('zoomed');
+            body.style.background = '';
+            appContainer.style.background = '';
+        } else if (zoomLevel > 1.0) {
+            // Zoom in: Apply zoom to entire app container
+            this.resetImageZoom();
+            appContainer.style.transformOrigin = '0 0';
+            appContainer.style.transform = `scale(${zoomLevel})`;
             body.classList.add('zoomed');
             body.style.background = '#1a1a1a';
-            // Don't disable overflow - let native scrolling work
             appContainer.style.background = '#1a1a1a';
         } else {
+            // 100% zoom: Reset everything
+            this.resetImageZoom();
+            appContainer.style.transform = '';
+            appContainer.style.transformOrigin = '';
             body.classList.remove('zoomed');
-            // Reset styles when at 100%
             body.style.background = '';
             appContainer.style.background = '';
         }
@@ -277,6 +286,24 @@ class ZoomHandler {
 
         // Update zoom indicator
         this.updateZoomIndicator();
+    }
+
+    applyImageZoom(zoomLevel) {
+        // Apply zoom only to manga images when zooming out
+        const mangaImages = document.querySelectorAll('.manga-page, .manga-page-container img');
+        mangaImages.forEach(img => {
+            img.style.transform = `scale(${zoomLevel})`;
+            img.style.transformOrigin = 'center top';
+        });
+    }
+
+    resetImageZoom() {
+        // Reset image-specific zoom
+        const mangaImages = document.querySelectorAll('.manga-page, .manga-page-container img');
+        mangaImages.forEach(img => {
+            img.style.transform = '';
+            img.style.transformOrigin = '';
+        });
     }
 
     applyZoom(zoomLevel) {

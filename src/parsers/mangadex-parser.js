@@ -57,6 +57,7 @@ class MangadexParser extends BaseParser {
                     // Get additional metadata
                     let status = manga.attributes.status || '';
                     let year = manga.attributes.year || '';
+                    let contentRating = manga.attributes.contentRating || 'safe';
                     let tags = [];
 
                     if (manga.attributes.tags) {
@@ -75,6 +76,7 @@ class MangadexParser extends BaseParser {
                         description: description.substring(0, 200) + (description.length > 200 ? '...' : ''),
                         status: status,
                         year: year,
+                        contentRating: contentRating,
                         tags: tags,
                         source: this.name
                     });

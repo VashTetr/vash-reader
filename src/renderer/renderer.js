@@ -769,12 +769,13 @@ class MangaReader {
             </div>
         `;
 
-        // Check if content should be filtered (adult content OR unknown metadata)
+        // Check if content should be filtered (only 18+ content, not 16+ content)
         const isAdultContent = this.contentFilter.isAdultContent(detailedManga);
+        const isMatureContent = this.contentFilter.isMatureContent(detailedManga);
         const shouldCensor = (isAdultContent || allMetadataUnknown) && this.contentFilter.isEnabled;
 
         // Determine the reason for censoring
-        let censorReason = 'Adult Content';
+        let censorReason = 'Adult Content (Nudity/Sexual)';
         if (allMetadataUnknown && !isAdultContent) {
             censorReason = 'Unknown Content - 18+';
         }
@@ -808,7 +809,7 @@ class MangaReader {
             <div class="manga-title">${displayTitle}</div>
             <div class="manga-source">${manga.source}</div>
             ${contentSection}
-            ${(isAdultContent || allMetadataUnknown) ? '<div class="content-warning">18+</div>' : ''}
+            ${isAdultContent || allMetadataUnknown ? '<div class="content-warning adult">18+</div>' : isMatureContent ? '<div class="content-warning mature">16+</div>' : ''}
             ${continueButton}
             <button class="manga-menu" onclick="event.stopPropagation()">⋮</button>
         `;
@@ -4126,14 +4127,15 @@ class MangaReader {
             genresDisplay = displayGenres.map(genre => `<span class="genre-tag">${genre}</span>`).join('');
         }
 
-        // Check if content should be filtered (adult content OR unknown metadata)
+        // Check if content should be filtered (only 18+ content, not 16+ content)
         const allMetadataUnknown = chapterCount === 'Unknown' && status === 'Unknown' && year === 'Unknown' &&
             (!detailedManga.genres || detailedManga.genres.length === 0);
         const isAdultContent = this.contentFilter.isAdultContent(detailedManga);
+        const isMatureContent = this.contentFilter.isMatureContent(detailedManga);
         const shouldCensor = (isAdultContent || allMetadataUnknown) && this.contentFilter.isEnabled;
 
         // Determine the reason for censoring
-        let censorReason = 'Adult Content';
+        let censorReason = 'Adult Content (Nudity/Sexual)';
         if (allMetadataUnknown && !isAdultContent) {
             censorReason = 'Unknown Content - 18+';
         }
@@ -4190,7 +4192,7 @@ class MangaReader {
                 ${genresDisplay ? `<div class="manga-genres">${genresDisplay}</div>` : ''}
             </div>
             <div class="follow-status-badge">${manga.status || 'Reading'}</div>
-            ${(isAdultContent || allMetadataUnknown) ? '<div class="content-warning">18+</div>' : ''}
+            ${isAdultContent || allMetadataUnknown ? '<div class="content-warning adult">18+</div>' : isMatureContent ? '<div class="content-warning mature">16+</div>' : ''}
             ${progressInfo}
             <div class="follow-status">Followed: ${followedDate}</div>
             <div class="follow-status">Last checked: ${lastChecked}</div>

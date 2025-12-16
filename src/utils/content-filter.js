@@ -5,32 +5,39 @@ class ContentFilter {
             'loli', 'shota', 'lolicon', 'shotacon'
         ];
 
-        // Adult content keywords and patterns
+        // 18+ content keywords (nudity/sexual content only)
         this.adultKeywords = [
-            // Explicit terms
-            'hentai', 'ecchi', 'smut', 'adult', 'mature', 'nsfw',
-            'erotic', 'sexual', 'xxx', 'porn', 'harem', 'yaoi', 'yuri',
+            // Explicit sexual terms
+            'hentai', 'ecchi', 'smut', 'xxx', 'porn', 'nsfw',
+            'erotic', 'sexual', 'nude', 'nudity', 'naked',
+            'breast', 'boobs', 'panties', 'underwear', 'lingerie',
 
-            // Common adult manga terms
-            'doujinshi', 'oneshot', 'anthology',
+            // Sexual relationship terms
+            'affair', 'cheating', 'ntr', 'milf', 'harem',
+            'yaoi', 'yuri', 'bl', 'gl', 'doujinshi',
 
-            // Suggestive terms
-            'romance', 'love', 'kiss', 'bed', 'night', 'secret',
-            'forbidden', 'temptation', 'desire', 'passion',
-
-            // Adult genres/tags
-            'seinen', 'josei', 'mature themes', 'suggestive themes',
-            'partial nudity', 'sexual themes', 'sexual violence',
-
-            // Common patterns in adult titles
-            'wife', 'husband', 'affair', 'cheating', 'ntr',
-            'milf', 'teacher', 'student', 'office', 'workplace'
+            // Explicit sexual themes
+            'sexual themes', 'sexual violence', 'partial nudity',
+            'adult only', 'mature content', 'suggestive themes'
         ];
 
-        // More explicit terms that definitely indicate adult content
+        // 16+ content keywords (violence/gore/mature themes without nudity)
+        this.matureKeywords = [
+            // Violence and gore
+            'gore', 'blood', 'violence', 'violent', 'brutal', 'murder',
+            'death', 'killing', 'torture', 'war', 'battle', 'fight',
+            'assassination', 'revenge', 'dark', 'psychological',
+
+            // Mature themes (non-sexual)
+            'seinen', 'josei', 'tragedy', 'drama',
+            'crime', 'thriller', 'horror', 'supernatural',
+            'dystopian', 'post-apocalyptic', 'survival'
+        ];
+
+        // Explicit terms that definitely indicate 18+ content (nudity/sexual)
         this.explicitKeywords = [
             'hentai', 'ecchi', 'smut', 'xxx', 'porn', 'nsfw',
-            'erotic', 'sexual', 'adult only', 'mature content',
+            'erotic', 'sexual', 'nude', 'nudity', 'naked',
             'doujinshi', 'yaoi', 'yuri', 'bl', 'gl'
         ];
 
@@ -71,17 +78,24 @@ class ContentFilter {
         ].join(' ').toLowerCase();
 
         // Hard block: Never allow loli content
-        return this.blockedContent.some(blocked =>
-            textToCheck.includes(blocked.toLowerCase())
-        );
+        return this.blockedContent.some(blocked => {
+            const regex = new RegExp(`\\b${blocked.toLowerCase()}\\b`);
+            return regex.test(textToCheck);
+        });
     }
 
+    // Check for 18+ content (nudity/sexual content only)
     isAdultContent(manga) {
         if (!manga) return false;
 
         // First check if it's blocked content (always return true for blocked)
         if (this.isBlockedContent(manga)) {
             return true;
+        }
+
+        // Check MangaDex content rating first (most reliable)
+        if (manga.contentRating) {
+            return manga.contentRating === 'erotica' || manga.contentRating === 'pornographic';
         }
 
         const textToCheck = [
@@ -93,25 +107,56 @@ class ContentFilter {
             manga.status || ''
         ].join(' ').toLowerCase();
 
-        // Check for explicit keywords (high confidence)
-        const hasExplicitContent = this.explicitKeywords.some(keyword =>
-            textToCheck.includes(keyword.toLowerCase())
-        );
+        // Check for explicit sexual keywords (high confidence) - use word boundaries
+        const hasExplicitContent = this.explicitKeywords.some(keyword => {
+            const regex = new RegExp(`\\b${keyword.toLowerCase()}\\b`);
+            return regex.test(textToCheck);
+        });
 
         if (hasExplicitContent) {
             return true;
         }
 
-        // Check for multiple suggestive keywords (medium confidence)
-        const suggestiveMatches = this.adultKeywords.filter(keyword =>
-            textToCheck.includes(keyword.toLowerCase())
-        ).length;
+        // Check for multiple sexual keywords (medium confidence) - use word boundaries
+        const sexualMatches = this.adultKeywords.filter(keyword => {
+            const regex = new RegExp(`\\b${keyword.toLowerCase()}\\b`);
+            return regex.test(textToCheck);
+        }).length;
 
-        // If 2 or more suggestive keywords match, likely adult content
-        return suggestiveMatches >= 2;
+        // If 2 or more sexual keywords match, likely 18+ content
+        return sexualMatches >= 2;
+    }
+
+    // Check for 16+ content (violence/gore/mature themes without nudity)
+    isMatureContent(manga) {
+        if (!manga) return false;
+
+        // Check MangaDex content rating first
+        if (manga.contentRating) {
+            return manga.contentRating === 'suggestive';
+        }
+
+        const textToCheck = [
+            manga.title || '',
+            manga.description || '',
+            ...(Array.isArray(manga.tags) ? manga.tags : []),
+            ...(Array.isArray(manga.genres) ? manga.genres : []),
+            manga.author || '',
+            manga.status || ''
+        ].join(' ').toLowerCase();
+
+        // Check for mature theme keywords - use word boundaries
+        const matureMatches = this.matureKeywords.filter(keyword => {
+            const regex = new RegExp(`\\b${keyword.toLowerCase()}\\b`);
+            return regex.test(textToCheck);
+        }).length;
+
+        // If 2 or more mature keywords match, likely 16+ content
+        return matureMatches >= 2;
     }
 
     shouldCensorImage(manga) {
+        // Only censor 18+ content (nudity/sexual), not 16+ content (gore/violence)
         return this.isEnabled && this.isAdultContent(manga);
     }
 
@@ -165,16 +210,24 @@ class ContentFilter {
 
     // Method to add content warning to manga cards
     addContentWarning(cardElement, manga) {
-        if (!this.shouldCensorImage(manga)) {
-            return;
-        }
+        // Remove any existing warnings first
+        const existingWarnings = cardElement.querySelectorAll('.content-warning');
+        existingWarnings.forEach(warning => warning.remove());
 
-        // Add warning badge
-        if (!cardElement.querySelector('.content-warning')) {
+        const isAdult = this.isAdultContent(manga);
+        const isMature = this.isMatureContent(manga);
+
+        if (isAdult) {
             const warning = document.createElement('div');
-            warning.className = 'content-warning';
+            warning.className = 'content-warning adult';
             warning.textContent = '18+';
-            warning.title = 'Adult Content';
+            warning.title = 'Adult Content (Nudity/Sexual)';
+            cardElement.appendChild(warning);
+        } else if (isMature) {
+            const warning = document.createElement('div');
+            warning.className = 'content-warning mature';
+            warning.textContent = '16+';
+            warning.title = 'Mature Content (Violence/Gore)';
             cardElement.appendChild(warning);
         }
     }

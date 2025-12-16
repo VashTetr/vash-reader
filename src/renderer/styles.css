@@ -1603,13 +1603,22 @@ body {
     position: absolute;
     top: 5px;
     right: 5px;
-    background: #ff4444;
     color: white;
     padding: 2px 6px;
     border-radius: 3px;
     font-size: 0.7rem;
     font-weight: bold;
     z-index: 5;
+}
+
+/* 18+ Adult Content (Nudity/Sexual) */
+.content-warning.adult {
+    background: #ff4444;
+}
+
+/* 16+ Mature Content (Violence/Gore) */
+.content-warning.mature {
+    background: #ff8800;
 }
 
 /* Manga card adjustments for censoring */

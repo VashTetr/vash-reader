@@ -229,47 +229,6 @@
             </div>
 
             <div id="reader" class="reader hidden">
-                <!-- Collapsible Navigation Menu -->
-                <div id="readerNavMenu" class="reader-nav-menu">
-                    <button id="readerNavToggle" class="reader-nav-toggle" title="Navigation Menu">
-                        <span class="nav-arrow">▶</span>
-                    </button>
-                    <div id="readerNavContent" class="reader-nav-content">
-                        <div class="nav-menu-header">
-                            <h3>Navigation</h3>
-                        </div>
-                        <div class="nav-menu-items">
-                            <button id="navHomeBtn" class="nav-menu-item">
-                                <span class="nav-icon">🏠</span>
-                                <span class="nav-text">Vash Reader</span>
-                            </button>
-                            <button id="navPrevChapterBtn" class="nav-menu-item">
-                                <span class="nav-icon">⬅️</span>
-                                <span class="nav-text">Previous Chapter</span>
-                            </button>
-                            <div class="nav-menu-item nav-chapter-select">
-                                <span class="nav-icon">📋</span>
-                                <select id="navChapterSelect" class="nav-chapter-dropdown">
-                                    <option value="">Chapter List</option>
-                                </select>
-                            </div>
-                            <button id="navNextChapterBtn" class="nav-menu-item">
-                                <span class="nav-icon">➡️</span>
-                                <span class="nav-text">Next Chapter</span>
-                            </button>
-                            <div class="nav-menu-divider"></div>
-                            <button id="navFollowsBtn" class="nav-menu-item">
-                                <span class="nav-icon">📚</span>
-                                <span class="nav-text">Following</span>
-                            </button>
-                            <button id="navNotificationsBtn" class="nav-menu-item">
-                                <span class="nav-icon">🔔</span>
-                                <span class="nav-text">Notifications</span>
-                                <span id="navNotificationBadge" class="nav-notification-badge hidden">0</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
 
                 <div class="reader-controls reader-controls-top">
                     <button id="backFromReader" class="back-btn">← Back</button>
@@ -312,6 +271,48 @@
                 </div>
             </div>
         </footer>
+    </div>
+
+    <!-- Reader Navigation Menu (outside .app to avoid zoom scaling) -->
+    <div id="readerNavMenu" class="reader-nav-menu">
+        <button id="readerNavToggle" class="reader-nav-toggle" title="Navigation Menu">
+            <span class="nav-arrow">▶</span>
+        </button>
+        <div id="readerNavContent" class="reader-nav-content">
+            <div class="nav-menu-header">
+                <h3>Navigation</h3>
+            </div>
+            <div class="nav-menu-items">
+                <button id="navHomeBtn" class="nav-menu-item">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-text">Vash Reader</span>
+                </button>
+                <button id="navPrevChapterBtn" class="nav-menu-item">
+                    <span class="nav-icon">⬅️</span>
+                    <span class="nav-text">Previous Chapter</span>
+                </button>
+                <div class="nav-menu-item nav-chapter-select">
+                    <span class="nav-icon">📋</span>
+                    <select id="navChapterSelect" class="nav-chapter-dropdown">
+                        <option value="">Chapter List</option>
+                    </select>
+                </div>
+                <button id="navNextChapterBtn" class="nav-menu-item">
+                    <span class="nav-icon">➡️</span>
+                    <span class="nav-text">Next Chapter</span>
+                </button>
+                <div class="nav-menu-divider"></div>
+                <button id="navFollowsBtn" class="nav-menu-item">
+                    <span class="nav-icon">📚</span>
+                    <span class="nav-text">Following</span>
+                </button>
+                <button id="navNotificationsBtn" class="nav-menu-item">
+                    <span class="nav-icon">🔔</span>
+                    <span class="nav-text">Notifications</span>
+                    <span id="navNotificationBadge" class="nav-notification-badge hidden">0</span>
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Advanced Search Modal -->

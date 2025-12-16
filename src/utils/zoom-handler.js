@@ -76,6 +76,7 @@ class ZoomHandler {
                 e.preventDefault();
                 this.handleZoom(e);
             }
+            // Let normal scrolling work natively when not holding Ctrl
         }, { passive: false });
 
         // Prevent default browser zoom
@@ -93,6 +94,8 @@ class ZoomHandler {
             }
         });
     }
+
+
 
     getMaxScrollValues() {
         // When using transform: scale(), we need to calculate boundaries based on 
@@ -253,13 +256,12 @@ class ZoomHandler {
         if (zoomLevel > 1.0) {
             body.classList.add('zoomed');
             body.style.background = '#1a1a1a';
-            body.style.overflow = 'hidden'; // Hide scrollbars for drag-to-pan
+            // Don't disable overflow - let native scrolling work
             appContainer.style.background = '#1a1a1a';
         } else {
             body.classList.remove('zoomed');
             // Reset styles when at 100%
             body.style.background = '';
-            body.style.overflow = ''; // Restore normal scrolling
             appContainer.style.background = '';
         }
 

@@ -3083,13 +3083,21 @@ body {
 
 /* Zoom Functionality */
 body.zoomed {
-    overflow: hidden;
-    /* Hide scrollbars, we'll handle panning manually */
+    /* Hide scrollbars but keep scrolling functionality */
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* Internet Explorer 10+ */
     cursor: default;
     /* Normal cursor instead of grab */
     background: #1a1a1a !important;
     /* Ensure dark background is maintained */
     min-height: 100vh;
+}
+
+body.zoomed::-webkit-scrollbar {
+    display: none;
+    /* Safari and Chrome */
 }
 
 body.zoomed.dragging {

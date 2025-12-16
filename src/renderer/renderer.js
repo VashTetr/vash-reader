@@ -26,6 +26,9 @@ class MangaReader {
         // Initialize content filter
         this.contentFilter = new ContentFilter();
 
+        // Initialize zoom handler
+        this.zoomHandler = new ZoomHandler();
+
         // Navigation history
         this.navigationHistory = [];
         this.currentContinueInfo = null;
@@ -92,8 +95,8 @@ class MangaReader {
         addListener('homeTitle', 'click', () => this.showHomePage());
 
         addListener('backToSourceSelection', 'click', () => this.showMangaDetails(this.currentManga, this.currentContinueInfo));
-        addListener('backToHomeFromFollows', 'click', () => this.showHomePage());
-        addListener('backToHomeFromNotifications', 'click', () => this.showHomePage());
+        addListener('backFromFollows', 'click', () => this.goBack());
+        addListener('backFromNotifications', 'click', () => this.goBack());
         addListener('backToSearchResults', 'click', () => this.goBack());
         addListener('backFromReader', 'click', () => this.goBackFromReader());
 
@@ -107,6 +110,8 @@ class MangaReader {
             }
         });
         addListener('navNextChapterBtn', 'click', () => this.navigateFromReaderMenu('nextChapter'));
+        addListener('navFollowsBtn', 'click', () => this.navigateFromReaderMenu('follows'));
+        addListener('navNotificationsBtn', 'click', () => this.navigateFromReaderMenu('notifications'));
 
         // Header buttons
         addListener('followsBtn', 'click', () => this.showFollowsPage());
@@ -142,6 +147,11 @@ class MangaReader {
         addListener('prevChapterBottom', 'click', () => this.previousChapter());
         addListener('nextChapterBottom', 'click', () => this.nextChapter());
         addListener('chapterSelectBottom', 'change', (e) => this.goToChapter(parseInt(e.target.value)));
+
+        // Zoom controls
+        addListener('zoomInBtn', 'click', () => this.zoomIn());
+        addListener('zoomOutBtn', 'click', () => this.zoomOut());
+        addListener('zoomResetBtn', 'click', () => this.resetZoom());
 
         // Home page navigation
         addListener('lastReadPrev', 'click', () => this.navigateLastRead(-1));
@@ -1309,6 +1319,53 @@ class MangaReader {
         return !document.getElementById('reader').classList.contains('hidden');
     }
 
+    getCurrentPage() {
+        // Determine which page is currently active
+        if (!document.getElementById('reader').classList.contains('hidden')) {
+            return 'reader';
+        } else if (!document.getElementById('followsPage').classList.contains('hidden')) {
+            return 'follows';
+        } else if (!document.getElementById('notificationsPage').classList.contains('hidden')) {
+            return 'notifications';
+        } else if (!document.getElementById('searchResults').classList.contains('hidden')) {
+            return 'search';
+        } else if (!document.getElementById('mangaDetails').classList.contains('hidden')) {
+            return 'mangaDetails';
+        } else {
+            return 'home';
+        }
+    }
+
+    saveReaderState() {
+        // Save current reader state when navigating away
+        if (this.isReaderActive()) {
+            this.savedReaderState = {
+                scrollTop: window.pageYOffset || document.documentElement.scrollTop,
+                scrollLeft: window.pageXOffset || document.documentElement.scrollLeft
+            };
+        }
+    }
+
+    restoreReaderState() {
+        // Restore reader state when coming back
+        this.hideAllViews();
+        document.getElementById('reader').classList.remove('hidden');
+
+        // Restore scroll position if saved
+        if (this.savedReaderState) {
+            setTimeout(() => {
+                window.scrollTo(this.savedReaderState.scrollLeft, this.savedReaderState.scrollTop);
+                this.savedReaderState = null; // Clear after use
+            }, 100);
+        }
+
+        // Initialize reader components
+        setTimeout(() => {
+            this.updateNavMenuButtonStates();
+            this.updateNavMenuVisibility();
+        }, 100);
+    }
+
     initializeProgressTracking() {
         // Remove existing scroll listener if any
         if (this.progressTrackingListener) {
@@ -2211,6 +2268,10 @@ class MangaReader {
     showHomePage() {
         this.hideAllViews();
         document.getElementById('homePage').classList.remove('hidden');
+
+        // Always start at the top of the home page
+        window.scrollTo(0, 0);
+
         this.loadHomePage(); // Refresh data
     }
 
@@ -2829,6 +2890,14 @@ class MangaReader {
                 }
                 break;
 
+            case 'follows':
+                this.showFollowsPage();
+                break;
+
+            case 'notifications':
+                this.showNotificationsPage();
+                break;
+
             default:
                 console.warn('Unknown navigation action:', action);
         }
@@ -2839,22 +2908,41 @@ class MangaReader {
         if (this.navigationHistory.length > 0) {
             const previousPage = this.navigationHistory.pop();
 
+            // Go back to previous page without adding to navigation history
             switch (previousPage) {
                 case 'home':
-                    this.showHomePage();
+                    this.hideAllViews();
+                    document.getElementById('homePage').classList.remove('hidden');
+                    window.scrollTo(0, 0);
                     break;
                 case 'search':
-                    this.showSearchResults();
+                    this.hideAllViews();
+                    document.getElementById('searchResults').classList.remove('hidden');
+                    window.scrollTo(0, 0);
                     break;
                 case 'follows':
-                    this.showFollowsPage();
+                    this.hideAllViews();
+                    document.getElementById('followsPage').classList.remove('hidden');
+                    window.scrollTo(0, 0);
                     break;
                 case 'notifications':
-                    this.showNotificationsPage();
+                    this.hideAllViews();
+                    document.getElementById('notificationsPage').classList.remove('hidden');
+                    window.scrollTo(0, 0);
+                    break;
+                case 'reader':
+                    this.restoreReaderState();
+                    break;
+                case 'mangaDetails':
+                    this.hideAllViews();
+                    document.getElementById('mangaDetails').classList.remove('hidden');
+                    window.scrollTo(0, 0);
                     break;
                 default:
                     // Fallback to home if unknown page
-                    this.showHomePage();
+                    this.hideAllViews();
+                    document.getElementById('homePage').classList.remove('hidden');
+                    window.scrollTo(0, 0);
                     break;
             }
         } else {
@@ -4011,8 +4099,22 @@ class MangaReader {
 
     // Follows page
     async showFollowsPage() {
+        // Add current page to navigation history before switching
+        const currentPage = this.getCurrentPage();
+        if (currentPage !== 'follows') {
+            // Save reader state if coming from reader
+            if (currentPage === 'reader') {
+                this.saveReaderState();
+            }
+            this.navigationHistory.push(currentPage);
+        }
+
         this.hideAllViews();
         document.getElementById('followsPage').classList.remove('hidden');
+
+        // Always start at the top of the follows page
+        window.scrollTo(0, 0);
+
         await this.loadFollows();
     }
 
@@ -4422,8 +4524,22 @@ class MangaReader {
 
     // Notifications page
     async showNotificationsPage() {
+        // Add current page to navigation history before switching
+        const currentPage = this.getCurrentPage();
+        if (currentPage !== 'notifications') {
+            // Save reader state if coming from reader
+            if (currentPage === 'reader') {
+                this.saveReaderState();
+            }
+            this.navigationHistory.push(currentPage);
+        }
+
         this.hideAllViews();
         document.getElementById('notificationsPage').classList.remove('hidden');
+
+        // Always start at the top of the notifications page
+        window.scrollTo(0, 0);
+
         await this.loadNotifications();
     }
 
@@ -5128,6 +5244,7 @@ class MangaReader {
             const count = await window.mangaAPI.getUnreadNotificationCount();
             const badge = document.getElementById('notificationBadge');
             const bottomBadge = document.getElementById('bottomNotificationBadge');
+            const navBadge = document.getElementById('navNotificationBadge');
 
             if (count > 0) {
                 const displayCount = count > 99 ? '99+' : count;
@@ -5143,13 +5260,22 @@ class MangaReader {
                     bottomBadge.textContent = displayCount;
                     bottomBadge.classList.remove('hidden');
                 }
+
+                // Update nav menu badge
+                if (navBadge) {
+                    navBadge.textContent = displayCount;
+                    navBadge.classList.remove('hidden');
+                }
             } else {
-                // Hide both badges
+                // Hide all badges
                 if (badge) {
                     badge.classList.add('hidden');
                 }
                 if (bottomBadge) {
                     bottomBadge.classList.add('hidden');
+                }
+                if (navBadge) {
+                    navBadge.classList.add('hidden');
                 }
             }
         } catch (error) {
@@ -5502,6 +5628,41 @@ class MangaReader {
                 successDiv.parentNode.removeChild(successDiv);
             }
         }, 5000);
+    }
+
+    // Zoom functionality methods
+    zoomIn() {
+        if (this.zoomHandler) {
+            // Get cursor position for zoom focus (center of screen if no cursor position available)
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+
+            // Convert to percentage
+            const originX = (centerX / window.innerWidth) * 100;
+            const originY = (centerY / window.innerHeight) * 100;
+
+            this.zoomHandler.zoomIn(originX, originY);
+        }
+    }
+
+    zoomOut() {
+        if (this.zoomHandler) {
+            // Get cursor position for zoom focus (center of screen if no cursor position available)
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+
+            // Convert to percentage
+            const originX = (centerX / window.innerWidth) * 100;
+            const originY = (centerY / window.innerHeight) * 100;
+
+            this.zoomHandler.zoomOut(originX, originY);
+        }
+    }
+
+    resetZoom() {
+        if (this.zoomHandler) {
+            this.zoomHandler.resetZoom();
+        }
     }
 }
 

@@ -180,7 +180,7 @@
             </div>
 
             <div id="followsPage" class="follows-page hidden">
-                <button id="backToHomeFromFollows" class="back-btn">← Back to Home</button>
+                <button id="backFromFollows" class="back-btn">← Back</button>
                 <div class="follows-header">
                     <h2>Following</h2>
                     <div class="follows-actions">
@@ -217,7 +217,7 @@
             </div>
 
             <div id="notificationsPage" class="notifications-page hidden">
-                <button id="backToHomeFromNotifications" class="back-btn">← Back to Home</button>
+                <button id="backFromNotifications" class="back-btn">← Back</button>
                 <div class="notifications-header">
                     <h2>Notifications</h2>
                     <div class="notifications-actions">
@@ -257,6 +257,16 @@
                                 <span class="nav-icon">➡️</span>
                                 <span class="nav-text">Next Chapter</span>
                             </button>
+                            <div class="nav-menu-divider"></div>
+                            <button id="navFollowsBtn" class="nav-menu-item">
+                                <span class="nav-icon">📚</span>
+                                <span class="nav-text">Following</span>
+                            </button>
+                            <button id="navNotificationsBtn" class="nav-menu-item">
+                                <span class="nav-icon">🔔</span>
+                                <span class="nav-text">Notifications</span>
+                                <span id="navNotificationBadge" class="nav-notification-badge hidden">0</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -278,6 +288,13 @@
                         <select id="chapterSelectBottom"></select>
                         <button id="nextChapterBottom">Next Chapter →</button>
                     </div>
+                </div>
+
+                <!-- Zoom Controls -->
+                <div id="zoomControls" class="zoom-controls">
+                    <button id="zoomInBtn" class="zoom-btn" title="Zoom In (Ctrl + Scroll Up)">+</button>
+                    <button id="zoomOutBtn" class="zoom-btn" title="Zoom Out (Ctrl + Scroll Down)">−</button>
+                    <button id="zoomResetBtn" class="zoom-btn" title="Reset Zoom (Ctrl + 0)">⌂</button>
                 </div>
             </div>
         </main>
@@ -432,6 +449,7 @@
     </div>
 
     <script src="../utils/content-filter.js"></script>
+    <script src="../utils/zoom-handler.js"></script>
     <script src="renderer.js"></script>
 </body>
 

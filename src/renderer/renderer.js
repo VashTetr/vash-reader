@@ -3934,9 +3934,6 @@ class MangaReader {
         try {
             const chapters = await window.mangaAPI.getChapters(source.url, source.parserName);
 
-            // Add to last read
-            await window.mangaAPI.addToLastRead(manga);
-
             this.displayChapterList(chapters);
         } catch (error) {
             this.showError('Failed to load chapters: ' + error.message);

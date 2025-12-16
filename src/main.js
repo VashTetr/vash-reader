@@ -34,7 +34,7 @@ app.whenReady().then(() => {
     const { session } = require('electron');
 
     session.defaultSession.webRequest.onBeforeSendHeaders(
-        { urls: ['*://zjcdn.mangahere.org/*', '*://mangahere.org/*', '*://data.tnlycdn.com/*', '*://mangapark.net/*'] },
+        { urls: ['*://zjcdn.mangahere.org/*', '*://mangahere.org/*', '*://data.tnlycdn.com/*', '*://mangapark.net/*', '*://manhwaclub.net/*', '*://img01.manga18fx.com/*', '*://img01.manga18.me/*'] },
         (details, callback) => {
             if (details.url.includes('tnlycdn.com')) {
                 // Toonily images
@@ -42,6 +42,9 @@ app.whenReady().then(() => {
             } else if (details.url.includes('mangapark.net')) {
                 // MangaPark images
                 details.requestHeaders['Referer'] = 'https://mangapark.net/';
+            } else if (details.url.includes('manhwaclub.net') || details.url.includes('manga18fx.com') || details.url.includes('manga18.me')) {
+                // ManhwaX images (multiple domains)
+                details.requestHeaders['Referer'] = 'https://manhwax.me/';
             } else {
                 // MangaTown/MangaHere images
                 details.requestHeaders['Referer'] = 'https://www.mangatown.com/';

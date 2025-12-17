@@ -148,10 +148,7 @@ class MangaReader {
         addListener('nextChapterBottom', 'click', () => this.nextChapter());
         addListener('chapterSelectBottom', 'change', (e) => this.goToChapter(parseInt(e.target.value)));
 
-        // Zoom controls
-        addListener('zoomInBtn', 'click', () => this.zoomIn());
-        addListener('zoomOutBtn', 'click', () => this.zoomOut());
-        addListener('zoomResetBtn', 'click', () => this.resetZoom());
+
 
         // Home page navigation
         addListener('lastReadPrev', 'click', () => this.navigateLastRead(-1));
@@ -5630,40 +5627,7 @@ class MangaReader {
         }, 5000);
     }
 
-    // Zoom functionality methods
-    zoomIn() {
-        if (this.zoomHandler) {
-            // Get cursor position for zoom focus (center of screen if no cursor position available)
-            const centerX = window.innerWidth / 2;
-            const centerY = window.innerHeight / 2;
 
-            // Convert to percentage
-            const originX = (centerX / window.innerWidth) * 100;
-            const originY = (centerY / window.innerHeight) * 100;
-
-            this.zoomHandler.zoomIn(originX, originY);
-        }
-    }
-
-    zoomOut() {
-        if (this.zoomHandler) {
-            // Get cursor position for zoom focus (center of screen if no cursor position available)
-            const centerX = window.innerWidth / 2;
-            const centerY = window.innerHeight / 2;
-
-            // Convert to percentage
-            const originX = (centerX / window.innerWidth) * 100;
-            const originY = (centerY / window.innerHeight) * 100;
-
-            this.zoomHandler.zoomOut(originX, originY);
-        }
-    }
-
-    resetZoom() {
-        if (this.zoomHandler) {
-            this.zoomHandler.resetZoom();
-        }
-    }
 }
 
 // Initialize the app when DOM is ready

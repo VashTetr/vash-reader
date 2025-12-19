@@ -2304,6 +2304,55 @@ body {
     border-radius: 8px;
 }
 
+.follow-manga-btn {
+    width: 100%;
+    margin-top: 15px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #4caf50, #45a049);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.follow-manga-btn:hover {
+    background: linear-gradient(135deg, #45a049, #3d8b40);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.follow-manga-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
+}
+
+.follow-manga-btn.following {
+    background: linear-gradient(135deg, #2e7d32, #1b5e20);
+    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.3);
+}
+
+.follow-manga-btn.following:hover {
+    background: linear-gradient(135deg, #1b5e20, #0d4f14);
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.4);
+}
+
+.follow-icon {
+    font-size: 18px;
+    transition: transform 0.3s ease;
+}
+
+.follow-manga-btn:hover .follow-icon {
+    transform: scale(1.1);
+}
+
 .rating-label {
     color: #ccc;
     font-size: 14px;
@@ -2629,6 +2678,15 @@ body {
     .manga-details-cover {
         width: 240px;
         height: 340px;
+    }
+
+    .follow-manga-btn {
+        font-size: 14px;
+        padding: 10px 16px;
+    }
+
+    .follow-icon {
+        font-size: 16px;
     }
 
     .manga-tags-section {

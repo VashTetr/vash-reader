@@ -2407,6 +2407,9 @@ class MangaReader {
             ratingContainer.appendChild(continueBtn);
         }
 
+        // Setup follow button
+        await this.setupFollowButton(manga);
+
         // Get detailed information from Comick if available (with timeout)
         let detailedInfo = null;
         if (manga.url && manga.url.includes('comick')) {
@@ -4141,6 +4144,66 @@ class MangaReader {
             this.updateNotificationBadge();
         } catch (error) {
             this.showError('Failed to follow manga: ' + error.message);
+        }
+    }
+
+    async setupFollowButton(manga) {
+        const followBtn = document.getElementById('followMangaBtn');
+        if (!followBtn) return;
+
+        try {
+            // Check if manga is already being followed
+            const isFollowing = await window.mangaAPI.isFollowing(manga.id || manga.url, manga.source);
+
+            // Update button appearance
+            this.updateFollowButtonState(followBtn, isFollowing);
+
+            // Remove any existing event listeners
+            const newFollowBtn = followBtn.cloneNode(true);
+            followBtn.parentNode.replaceChild(newFollowBtn, followBtn);
+
+            // Add click event listener
+            newFollowBtn.addEventListener('click', async () => {
+                try {
+                    const currentlyFollowing = newFollowBtn.classList.contains('following');
+
+                    if (currentlyFollowing) {
+                        // Unfollow
+                        await window.mangaAPI.removeFromFollows(manga.id || manga.url, manga.source);
+                        this.updateFollowButtonState(newFollowBtn, false);
+                        this.showSuccess('Removed from following list!');
+                    } else {
+                        // Follow
+                        await window.mangaAPI.addToFollows(manga);
+                        this.updateFollowButtonState(newFollowBtn, true);
+                        this.showSuccess('Added to following list!');
+                    }
+
+                    this.updateNotificationBadge();
+                } catch (error) {
+                    console.error('Follow/unfollow error:', error);
+                    this.showError('Failed to update following status: ' + error.message);
+                }
+            });
+        } catch (error) {
+            console.error('Setup follow button error:', error);
+            // Hide button if there's an error
+            followBtn.style.display = 'none';
+        }
+    }
+
+    updateFollowButtonState(button, isFollowing) {
+        const icon = button.querySelector('.follow-icon');
+        const text = button.querySelector('.follow-text');
+
+        if (isFollowing) {
+            button.classList.add('following');
+            icon.textContent = '✓';
+            text.textContent = 'Remove from Follow';
+        } else {
+            button.classList.remove('following');
+            icon.textContent = '❤️';
+            text.textContent = 'Follow';
         }
     }
 

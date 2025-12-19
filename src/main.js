@@ -76,9 +76,9 @@ app.on('activate', () => {
 });
 
 // IPC handlers for manga operations
-ipcMain.handle('search-manga', async (event, query) => {
+ipcMain.handle('search-manga', async (event, query, enabledSources) => {
     try {
-        return await mangaScraper.searchManga(query);
+        return await mangaScraper.searchManga(query, enabledSources);
     } catch (error) {
         console.error('Search error:', error);
         return { error: error.message };
@@ -616,6 +616,65 @@ ipcMain.handle('get-all-statuses', async (event) => {
         return { success: true, statuses };
     } catch (error) {
         console.error('Get all statuses error:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Source settings handlers
+ipcMain.handle('get-enabled-sources', async (event) => {
+    try {
+        return storage.getEnabledSources();
+    } catch (error) {
+        console.error('Get enabled sources error:', error);
+        return ['Comick']; // Default fallback
+    }
+});
+
+ipcMain.handle('set-enabled-sources', async (event, sources) => {
+    try {
+        storage.setEnabledSources(sources);
+        return { success: true };
+    } catch (error) {
+        console.error('Set enabled sources error:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('is-source-enabled', async (event, sourceName) => {
+    try {
+        return storage.isSourceEnabled(sourceName);
+    } catch (error) {
+        console.error('Is source enabled error:', error);
+        return sourceName === 'Comick'; // Default fallback
+    }
+});
+
+ipcMain.handle('enable-source', async (event, sourceName) => {
+    try {
+        storage.enableSource(sourceName);
+        return { success: true };
+    } catch (error) {
+        console.error('Enable source error:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('disable-source', async (event, sourceName) => {
+    try {
+        storage.disableSource(sourceName);
+        return { success: true };
+    } catch (error) {
+        console.error('Disable source error:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('reset-sources-to-default', async (event) => {
+    try {
+        storage.resetSourcesToDefault();
+        return { success: true };
+    } catch (error) {
+        console.error('Reset sources to default error:', error);
         return { success: false, error: error.message };
     }
 });

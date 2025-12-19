@@ -5,10 +5,10 @@ class MangaScraper {
         this.parserManager = new ParserManager();
     }
 
-    async searchManga(query) {
+    async searchManga(query, enabledSources = ['Comick']) {
         try {
-            // Search across all sources
-            return await this.parserManager.searchAll(query, 8);
+            // Search across enabled sources only
+            return await this.parserManager.searchEnabledSources(query, enabledSources, 8);
         } catch (error) {
             console.error('Search failed:', error);
             return [];

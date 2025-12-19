@@ -431,6 +431,53 @@ class Storage {
         this.saveData();
     }
 
+    // Source settings methods
+    getEnabledSources() {
+        if (!this.data.settings) {
+            this.data.settings = {};
+        }
+
+        // Default to only Comick enabled if no settings exist
+        if (!this.data.settings.enabledSources) {
+            this.data.settings.enabledSources = ['Comick'];
+            this.saveData();
+        }
+
+        return this.data.settings.enabledSources;
+    }
+
+    setEnabledSources(sources) {
+        if (!this.data.settings) {
+            this.data.settings = {};
+        }
+
+        this.data.settings.enabledSources = sources;
+        this.saveData();
+    }
+
+    isSourceEnabled(sourceName) {
+        const enabledSources = this.getEnabledSources();
+        return enabledSources.includes(sourceName);
+    }
+
+    enableSource(sourceName) {
+        const enabledSources = this.getEnabledSources();
+        if (!enabledSources.includes(sourceName)) {
+            enabledSources.push(sourceName);
+            this.setEnabledSources(enabledSources);
+        }
+    }
+
+    disableSource(sourceName) {
+        const enabledSources = this.getEnabledSources();
+        const filtered = enabledSources.filter(source => source !== sourceName);
+        this.setEnabledSources(filtered);
+    }
+
+    resetSourcesToDefault() {
+        this.setEnabledSources(['Comick']);
+    }
+
     // Import/Export functionality
     exportFollowsToCSV() {
         if (!this.data.follows) {

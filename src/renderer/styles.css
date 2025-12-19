@@ -682,6 +682,10 @@ body {
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .header-btn:hover {
@@ -690,8 +694,9 @@ body {
 
 .notification-btn {
     position: relative;
-    font-size: 18px;
-    padding: 8px 12px;
+    font-size: 16px;
+    padding: 8px 16px;
+    height: 36px;
 }
 
 .notification-badge {
@@ -1642,12 +1647,16 @@ body {
     background: #444;
     color: white;
     border: none;
-    padding: 0.5rem 1rem;
+    padding: 8px 16px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 0.8rem;
+    font-size: 14px;
     transition: background 0.2s;
     margin-left: 0.5rem;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .filter-toggle:hover {
@@ -3187,4 +3196,156 @@ body.zoomed::-webkit-scrollbar-thumb {
 
 body.zoomed::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 0, 0, 0.5);
+}
+
+/* Settings Page */
+.settings-page {
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.settings-header {
+    margin-bottom: 30px;
+}
+
+.settings-header h2 {
+    color: #ff6b6b;
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.settings-description {
+    color: #ccc;
+    margin-bottom: 30px;
+    line-height: 1.5;
+}
+
+.source-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+/* Responsive - more columns on wider screens */
+@media (min-width: 600px) {
+    .source-grid {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+}
+
+@media (min-width: 900px) {
+    .source-grid {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+}
+
+@media (min-width: 1200px) {
+    .source-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+}
+
+.source-item {
+    background: #2d2d2d;
+    border-radius: 6px;
+    padding: 12px 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid #444;
+}
+
+.source-item:hover {
+    background: #3a3a3a;
+    border-color: #666;
+}
+
+.source-item.enabled {
+    border-color: #4CAF50;
+}
+
+.source-item.disabled {
+    border-color: #555;
+}
+
+.source-name {
+    font-weight: 500;
+    color: #fff;
+    font-size: 14px;
+}
+
+.source-toggle {
+    position: relative;
+    width: 40px;
+    height: 20px;
+    background: #666;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    flex-shrink: 0;
+}
+
+.source-toggle.enabled {
+    background: #4CAF50;
+}
+
+.source-toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.source-toggle.enabled::after {
+    transform: translateX(20px);
+}
+
+.settings-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.settings-btn {
+    background: #666;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.settings-btn:hover {
+    background: #777;
+}
+
+.settings-btn.primary {
+    background: #ff6b6b;
+}
+
+.settings-btn.primary:hover {
+    background: #ff5252;
+}
+
+/* Loading state for settings */
+.source-grid .loading {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px;
+    color: #999;
+    font-size: 16px;
 }

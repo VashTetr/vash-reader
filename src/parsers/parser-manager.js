@@ -89,6 +89,56 @@ class ParserManager {
         return allResults;
     }
 
+    async searchEnabledSources(query, enabledSources = ['Comick'], maxResults = 10) {
+        const allResults = [];
+        const seenTitles = new Map(); // Track seen manga titles for deduplication
+
+        // Filter parsers to only enabled sources
+        const searchParsers = this.parsers.filter(parser => enabledSources.includes(parser.name));
+
+        if (searchParsers.length === 0) {
+            console.warn('No enabled sources found, falling back to Comick');
+            const comickParser = this.parsers.find(parser => parser.name === 'Comick');
+            if (comickParser) {
+                searchParsers.push(comickParser);
+            }
+        }
+
+        const searchPromises = searchParsers.map(async (parser) => {
+            try {
+                const results = await parser.search(query);
+                return results.slice(0, maxResults);
+            } catch (error) {
+                console.error(`Search failed for ${parser.name}:`, error);
+                return [];
+            }
+        });
+
+        const results = await Promise.all(searchPromises);
+
+        // Flatten and deduplicate results based on title similarity
+        results.forEach(parserResults => {
+            parserResults.forEach(manga => {
+                const normalizedTitle = this.normalizeTitle(manga.title);
+
+                if (seenTitles.has(normalizedTitle)) {
+                    // Manga already exists, add this source to the existing entry
+                    const existingManga = seenTitles.get(normalizedTitle);
+                    if (!existingManga.sources) {
+                        existingManga.sources = [existingManga.source];
+                    }
+                    existingManga.sources.push(manga.source);
+                } else {
+                    // New manga, add to results
+                    seenTitles.set(normalizedTitle, manga);
+                    allResults.push(manga);
+                }
+            });
+        });
+
+        return allResults;
+    }
+
     // Helper method to normalize titles for deduplication
     normalizeTitle(title) {
         if (!title) return '';

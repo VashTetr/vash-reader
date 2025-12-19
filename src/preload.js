@@ -2,7 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('mangaAPI', {
     // Search and reading
-    searchManga: (query) => ipcRenderer.invoke('search-manga', query),
+    searchManga: (query, enabledSources) => ipcRenderer.invoke('search-manga', query, enabledSources),
     searchBySource: (query, source, page, limit) => ipcRenderer.invoke('search-by-source', query, source, page, limit),
     advancedSearch: (filters) => ipcRenderer.invoke('advanced-search', filters),
     getGenres: () => ipcRenderer.invoke('get-genres'),
@@ -58,5 +58,13 @@ contextBridge.exposeInMainWorld('mangaAPI', {
     // Status management
     updateMangaStatus: (mangaId, source, newStatus) => ipcRenderer.invoke('update-manga-status', mangaId, source, newStatus),
     getMangasByStatus: (status) => ipcRenderer.invoke('get-mangas-by-status', status),
-    getAllStatuses: () => ipcRenderer.invoke('get-all-statuses')
+    getAllStatuses: () => ipcRenderer.invoke('get-all-statuses'),
+
+    // Source settings
+    getEnabledSources: () => ipcRenderer.invoke('get-enabled-sources'),
+    setEnabledSources: (sources) => ipcRenderer.invoke('set-enabled-sources', sources),
+    isSourceEnabled: (sourceName) => ipcRenderer.invoke('is-source-enabled', sourceName),
+    enableSource: (sourceName) => ipcRenderer.invoke('enable-source', sourceName),
+    disableSource: (sourceName) => ipcRenderer.invoke('disable-source', sourceName),
+    resetSourcesToDefault: () => ipcRenderer.invoke('reset-sources-to-default')
 });

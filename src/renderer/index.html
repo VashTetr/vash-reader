@@ -22,6 +22,7 @@
                     🔔
                     <span id="notificationBadge" class="notification-badge hidden">0</span>
                 </button>
+                <button id="settingsBtn" class="header-btn" title="Settings">⚙️</button>
                 <button id="filterToggleBtn" class="filter-toggle enabled" title="Toggle content filter">🔞
                     Filter</button>
             </div>
@@ -228,6 +229,25 @@
                 <div id="notificationsList" class="notifications-list"></div>
             </div>
 
+            <div id="settingsPage" class="settings-page hidden">
+                <button id="backFromSettings" class="back-btn">← Back</button>
+                <div class="settings-header">
+                    <h2>Search Sources</h2>
+                    <p class="settings-description">Select which sources to use for manga search. Comick is recommended
+                        as the primary source.</p>
+                </div>
+                <div id="sourceSettings" class="source-grid">
+                    <div class="loading">Loading sources...</div>
+                </div>
+                <div class="settings-actions">
+                    <button id="selectAllSources" class="settings-btn">Select All</button>
+                    <button id="deselectAllSources" class="settings-btn">Deselect All</button>
+                    <button id="resetToDefault" class="settings-btn primary">Reset to Default</button>
+                </div>
+            </div>
+
+
+
             <div id="reader" class="reader hidden">
 
                 <div class="reader-controls reader-controls-top">
@@ -263,6 +283,7 @@
                         🔔
                         <span id="bottomNotificationBadge" class="notification-badge hidden">0</span>
                     </button>
+                    <button id="bottomSettingsBtn" class="header-btn" title="Settings">⚙️</button>
                 </div>
             </div>
         </footer>
@@ -306,6 +327,32 @@
                     <span class="nav-text">Notifications</span>
                     <span id="navNotificationBadge" class="nav-notification-badge hidden">0</span>
                 </button>
+                <button id="navSettingsBtn" class="nav-menu-item">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-text">Settings</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Search Sources</h2>
+                <button id="closeSettings" class="close-btn">×</button>
+            </div>
+            <div class="modal-body">
+                <p class="settings-description">Select which sources to use for manga search. Comick is recommended as
+                    the primary source.</p>
+                <div id="sourceSettings" class="source-settings-grid">
+                    <div class="loading">Loading sources...</div>
+                </div>
+                <div class="settings-actions">
+                    <button id="selectAllSources" class="settings-btn">Select All</button>
+                    <button id="deselectAllSources" class="settings-btn">Deselect All</button>
+                    <button id="resetToDefault" class="settings-btn primary">Reset to Default</button>
+                </div>
             </div>
         </div>
     </div>

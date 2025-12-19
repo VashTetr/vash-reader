@@ -97,6 +97,7 @@ class MangaReader {
         addListener('backToSourceSelection', 'click', () => this.showMangaDetails(this.currentManga, this.currentContinueInfo));
         addListener('backFromFollows', 'click', () => this.goBack());
         addListener('backFromNotifications', 'click', () => this.goBack());
+        addListener('backFromSettings', 'click', () => this.goBack());
         addListener('backToSearchResults', 'click', () => this.goBack());
         addListener('backFromReader', 'click', () => this.goBackFromReader());
 
@@ -112,10 +113,12 @@ class MangaReader {
         addListener('navNextChapterBtn', 'click', () => this.navigateFromReaderMenu('nextChapter'));
         addListener('navFollowsBtn', 'click', () => this.navigateFromReaderMenu('follows'));
         addListener('navNotificationsBtn', 'click', () => this.navigateFromReaderMenu('notifications'));
+        addListener('navSettingsBtn', 'click', () => this.navigateFromReaderMenu('settings'));
 
         // Header buttons
         addListener('followsBtn', 'click', () => this.showFollowsPage());
         addListener('notificationsBtn', 'click', () => this.showNotificationsPage());
+        addListener('settingsBtn', 'click', () => this.showSettingsPage());
         addListener('markAllReadBtn', 'click', () => this.markAllNotificationsRead());
         addListener('clearAllNotificationsBtn', 'click', () => this.clearAllNotifications());
         addListener('filterToggleBtn', 'click', () => this.toggleContentFilter());
@@ -124,6 +127,7 @@ class MangaReader {
         addListener('bottomHomeTitle', 'click', () => this.showHomePage());
         addListener('bottomFollowsBtn', 'click', () => this.showFollowsPage());
         addListener('bottomNotificationsBtn', 'click', () => this.showNotificationsPage());
+        addListener('bottomSettingsBtn', 'click', () => this.showSettingsPage());
 
         // Import/Export buttons
         addListener('checkUpdatesBtn', 'click', () => this.manualCheckForUpdates());
@@ -137,6 +141,11 @@ class MangaReader {
         addListener('statusFilter', 'change', () => this.filterFollows());
         addListener('clearFiltersBtn', 'click', () => this.clearFilters());
         addListener('csvFileInput', 'change', (e) => this.handleCSVFileSelect(e));
+
+        // Settings page buttons
+        addListener('selectAllSources', 'click', () => this.selectAllSources());
+        addListener('deselectAllSources', 'click', () => this.deselectAllSources());
+        addListener('resetToDefault', 'click', () => this.resetSourcesToDefault());
 
         // Reader controls (top)
         addListener('prevChapter', 'click', () => this.previousChapter());
@@ -185,9 +194,19 @@ class MangaReader {
         this.showLoading('Searching...');
 
         try {
-            // Use Comick search for main search with pagination
-            const comickResults = await window.mangaAPI.searchBySource(query, 'Comick', 1, 100);
-            await this.displaySearchResults(comickResults, query, true); // true = new search
+            // Get enabled sources from settings
+            const enabledSources = await window.mangaAPI.getEnabledSources();
+
+            // If only Comick is enabled, use the optimized Comick search with pagination
+            if (enabledSources.length === 1 && enabledSources[0] === 'Comick') {
+                const comickResults = await window.mangaAPI.searchBySource(query, 'Comick', 1, 100);
+                await this.displaySearchResults(comickResults, query, true); // true = new search
+            } else {
+                // Use multi-source search for enabled sources
+                const results = await window.mangaAPI.searchManga(query, enabledSources);
+                await this.displaySearchResults(results, query, true); // true = new search
+                this.hasMoreResults = false; // Multi-source search doesn't support pagination
+            }
         } catch (error) {
             this.showError('Search failed: ' + error.message);
         }
@@ -1324,6 +1343,8 @@ class MangaReader {
             return 'follows';
         } else if (!document.getElementById('notificationsPage').classList.contains('hidden')) {
             return 'notifications';
+        } else if (!document.getElementById('settingsPage').classList.contains('hidden')) {
+            return 'settings';
         } else if (!document.getElementById('searchResults').classList.contains('hidden')) {
             return 'search';
         } else if (!document.getElementById('mangaDetails').classList.contains('hidden')) {
@@ -2709,6 +2730,8 @@ class MangaReader {
         document.getElementById('reader').classList.add('hidden');
         document.getElementById('followsPage').classList.add('hidden');
         document.getElementById('notificationsPage').classList.add('hidden');
+        document.getElementById('settingsPage').classList.add('hidden');
+
     }
 
     cleanupProgressTracking() {
@@ -2895,6 +2918,10 @@ class MangaReader {
                 this.showNotificationsPage();
                 break;
 
+            case 'settings':
+                this.showSettingsPage();
+                break;
+
             default:
                 console.warn('Unknown navigation action:', action);
         }
@@ -2925,6 +2952,11 @@ class MangaReader {
                 case 'notifications':
                     this.hideAllViews();
                     document.getElementById('notificationsPage').classList.remove('hidden');
+                    window.scrollTo(0, 0);
+                    break;
+                case 'settings':
+                    this.hideAllViews();
+                    document.getElementById('settingsPage').classList.remove('hidden');
                     window.scrollTo(0, 0);
                     break;
                 case 'reader':
@@ -5625,6 +5657,132 @@ class MangaReader {
                 successDiv.parentNode.removeChild(successDiv);
             }
         }, 5000);
+    }
+
+    // Settings modal methods
+    async showSettingsPage() {
+        // Add current page to navigation history
+        const currentPage = this.getCurrentPage();
+        if (currentPage !== 'settings') {
+            if (this.isReaderActive()) {
+                this.saveReaderState();
+            }
+            this.navigationHistory.push(currentPage);
+        }
+
+        this.hideAllViews();
+        document.getElementById('settingsPage').classList.remove('hidden');
+        await this.loadSourceSettings();
+    }
+
+    async loadSourceSettings() {
+        const sourceSettings = document.getElementById('sourceSettings');
+        sourceSettings.innerHTML = '<div class="loading">Loading sources...</div>';
+
+        try {
+            // Get all available sources and enabled sources
+            const [allSources, enabledSources] = await Promise.all([
+                window.mangaAPI.getSources(),
+                window.mangaAPI.getEnabledSources()
+            ]);
+
+            sourceSettings.innerHTML = '';
+
+            allSources.forEach(source => {
+                const isEnabled = enabledSources.includes(source.name);
+                const sourceItem = document.createElement('div');
+                sourceItem.className = `source-item ${isEnabled ? 'enabled' : 'disabled'}`;
+
+                sourceItem.innerHTML = `
+                    <div class="source-name">${source.name}</div>
+                    <div class="source-toggle ${isEnabled ? 'enabled' : ''}" data-source="${source.name}"></div>
+                `;
+
+                // Add click handler for toggle
+                const toggle = sourceItem.querySelector('.source-toggle');
+                toggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleSource(source.name, toggle, sourceItem);
+                });
+
+                // Also allow clicking the whole item to toggle
+                sourceItem.addEventListener('click', () => {
+                    this.toggleSource(source.name, toggle, sourceItem);
+                });
+
+                sourceSettings.appendChild(sourceItem);
+            });
+
+        } catch (error) {
+            console.error('Failed to load source settings:', error);
+            sourceSettings.innerHTML = '<div class="loading">Failed to load sources</div>';
+        }
+    }
+
+    async toggleSource(sourceName, toggleElement, sourceItem) {
+        try {
+            const isCurrentlyEnabled = toggleElement.classList.contains('enabled');
+
+            if (isCurrentlyEnabled) {
+                await window.mangaAPI.disableSource(sourceName);
+                toggleElement.classList.remove('enabled');
+                sourceItem.classList.remove('enabled');
+                sourceItem.classList.add('disabled');
+
+            } else {
+                await window.mangaAPI.enableSource(sourceName);
+                toggleElement.classList.add('enabled');
+                sourceItem.classList.remove('disabled');
+                sourceItem.classList.add('enabled');
+
+            }
+
+            // Show feedback
+            this.showSuccess(`${sourceName} ${isCurrentlyEnabled ? 'disabled' : 'enabled'}`);
+
+        } catch (error) {
+            console.error('Failed to toggle source:', error);
+            this.showError('Failed to update source settings');
+        }
+    }
+
+    async selectAllSources() {
+        try {
+            const allSources = await window.mangaAPI.getSources();
+            const sourceNames = allSources.map(source => source.name);
+
+            await window.mangaAPI.setEnabledSources(sourceNames);
+            await this.loadSourceSettings();
+            this.showSuccess('All sources enabled');
+
+        } catch (error) {
+            console.error('Failed to select all sources:', error);
+            this.showError('Failed to enable all sources');
+        }
+    }
+
+    async deselectAllSources() {
+        try {
+            await window.mangaAPI.setEnabledSources([]);
+            await this.loadSourceSettings();
+            this.showSuccess('All sources disabled');
+
+        } catch (error) {
+            console.error('Failed to deselect all sources:', error);
+            this.showError('Failed to disable all sources');
+        }
+    }
+
+    async resetSourcesToDefault() {
+        try {
+            await window.mangaAPI.resetSourcesToDefault();
+            await this.loadSourceSettings();
+            this.showSuccess('Reset to default (Comick only)');
+
+        } catch (error) {
+            console.error('Failed to reset sources to default:', error);
+            this.showError('Failed to reset sources');
+        }
     }
 
 

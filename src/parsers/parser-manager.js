@@ -2,10 +2,11 @@ const MangadexParser = require('./mangadex-parser');
 const TrueMangaParser = require('./truemanga-parser');
 const MangaBuddyParser = require('./mangabuddy-parser');
 const MangaTownParser = require('./mangatown-parser');
-const BatoToParser = require('./batoto-parser');
+// const BatoToParser = require('./batoto-parser'); // Commented out due to connection issues
 const ComickParser = require('./comick-parser');
 const MangakakalotParser = require('./mangakakalot-parser');
 const AsuraScansParser = require('./asurascans-parser');
+const ReaperScansParser = require('./reaperscans-parser');
 const FlameComicsParser = require('./flamecomics-parser');
 const MangaJinxParser = require('./mangajinx-parser');
 const ManhwaXParser = require('./manhwax-parser');
@@ -15,6 +16,12 @@ const ToonilyParser = require('./toonily-parser');
 const MangaParkParser = require('./mangapark-parser');
 // Additional parsers
 const MangaHereParser = require('./mangahere-parser');
+const CutieComicsParser = require('./cutiecomics-parser');
+const MangaHubParser = require('./mangahub-parser');
+const ReadMangaParser = require('./readmanga-parser');
+const MangaFoxParser = require('./mangafox-parser');
+const TMOMangaParser = require('./tmomanga-parser');
+// const HitomiParser = require('./hitomi-parser'); // Removed - too problematic
 
 class ParserManager {
     constructor() {
@@ -23,17 +30,24 @@ class ParserManager {
             new TrueMangaParser(),
             new MangaBuddyParser(),
             new MangaTownParser(),
-            new BatoToParser(),
+            // new BatoToParser(), // Commented out due to connection issues
             new ComickParser(),
             new MangakakalotParser(),
             new AsuraScansParser(),
+            new ReaperScansParser(),
             new FlameComicsParser(),
             new MangaJinxParser(),
             new ManhwaXParser(),
             new TooniTubeParser(),
             new ToonilyParser(),
             new MangaParkParser(),
-            new MangaHereParser()
+            new MangaHereParser(),
+            new CutieComicsParser(),
+            new MangaHubParser(),
+            new ReadMangaParser(),
+            new MangaFoxParser(),
+            new TMOMangaParser()
+            // new HitomiParser() // Removed - too problematic
         ];
     }
 
@@ -175,13 +189,13 @@ class ParserManager {
         return await parser.getChapters(mangaUrl);
     }
 
-    async getPages(chapterUrl, sourceName) {
+    async getPages(chapterUrl, sourceName, options = {}) {
         const parser = this.getParser(sourceName);
         if (!parser) {
             throw new Error(`Parser not found for source: ${sourceName}`);
         }
 
-        return await parser.getPages(chapterUrl);
+        return await parser.getPages(chapterUrl, { loadAll: true, ...options });
     }
 
     async resolvePageUrl(pageUrl, sourceName) {

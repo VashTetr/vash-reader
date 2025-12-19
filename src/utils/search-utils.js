@@ -93,4 +93,10 @@ class SearchUtils {
     }
 }
 
-module.exports = SearchUtils;
+// Export for use in other modules
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = SearchUtils;
+} else {
+    // Browser context
+    window.SearchUtils = SearchUtils;
+}

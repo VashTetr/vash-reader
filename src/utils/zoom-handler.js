@@ -323,73 +323,7 @@ class ZoomHandler {
         window.scrollTo(0, 0);
     }
 
-    zoomIn() {
-        const newZoom = Math.min(this.maxZoom, this.currentZoom + this.zoomStep);
 
-        // For button clicks, zoom towards center of viewport
-        const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
-        const scrollY = window.pageYOffset || document.documentElement.scrollTop;
-
-        // Center of viewport in page coordinates
-        const centerX = scrollX + window.innerWidth / 2;
-        const centerY = scrollY + window.innerHeight / 2;
-
-        // Calculate zoom factor
-        const zoomFactor = newZoom / this.currentZoom;
-
-        // Apply zoom
-        this.applyZoomWithoutScroll(newZoom);
-
-        // Wait for DOM to update, then calculate scroll position
-        requestAnimationFrame(() => {
-            // Calculate new scroll position to keep center fixed
-            let newScrollX = centerX * zoomFactor - window.innerWidth / 2;
-            let newScrollY = centerY * zoomFactor - window.innerHeight / 2;
-
-            // Get the maximum scroll values after zoom
-            const { maxScrollX, maxScrollY } = this.getMaxScrollValues();
-
-            // Clamp scroll values to valid ranges
-            newScrollX = Math.max(0, Math.min(newScrollX, maxScrollX));
-            newScrollY = Math.max(0, Math.min(newScrollY, maxScrollY));
-
-            window.scrollTo(newScrollX, newScrollY);
-        });
-    }
-
-    zoomOut() {
-        const newZoom = Math.max(this.minZoom, this.currentZoom - this.zoomStep);
-
-        // For button clicks, zoom towards center of viewport
-        const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
-        const scrollY = window.pageYOffset || document.documentElement.scrollTop;
-
-        // Center of viewport in page coordinates
-        const centerX = scrollX + window.innerWidth / 2;
-        const centerY = scrollY + window.innerHeight / 2;
-
-        // Calculate zoom factor
-        const zoomFactor = newZoom / this.currentZoom;
-
-        // Apply zoom
-        this.applyZoomWithoutScroll(newZoom);
-
-        // Wait for DOM to update, then calculate scroll position
-        requestAnimationFrame(() => {
-            // Calculate new scroll position to keep center fixed
-            let newScrollX = centerX * zoomFactor - window.innerWidth / 2;
-            let newScrollY = centerY * zoomFactor - window.innerHeight / 2;
-
-            // Get the maximum scroll values after zoom
-            const { maxScrollX, maxScrollY } = this.getMaxScrollValues();
-
-            // Clamp scroll values to valid ranges
-            newScrollX = Math.max(0, Math.min(newScrollX, maxScrollX));
-            newScrollY = Math.max(0, Math.min(newScrollY, maxScrollY));
-
-            window.scrollTo(newScrollX, newScrollY);
-        });
-    }
 
     setZoom(zoomLevel) {
         const clampedZoom = Math.max(this.minZoom, Math.min(this.maxZoom, zoomLevel));

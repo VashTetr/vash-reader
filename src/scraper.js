@@ -69,6 +69,82 @@ class MangaScraper {
         }
     }
 
+    // Browse method for getting recent/popular content from sources
+    async browseManga(enabledSources = ['Comick'], limit = 100) {
+        try {
+            const results = [];
+
+            // Try each enabled source for browse functionality
+            for (const sourceName of enabledSources) {
+                try {
+                    const parser = this.parserManager.getParser(sourceName);
+                    if (!parser) continue;
+
+                    let browseResults = [];
+
+                    // Check if parser has a browse method
+                    if (typeof parser.browse === 'function') {
+                        browseResults = await parser.browse(limit);
+                    } else if (sourceName === 'Comick' && typeof parser.getPopular === 'function') {
+                        // Use Comick's popular method as browse
+                        browseResults = await parser.getPopular(1, limit);
+                    } else {
+                        // Fallback: search for common terms to get variety
+                        const commonTerms = ['love', 'life', 'world', 'hero', 'magic', 'school'];
+                        for (const term of commonTerms) {
+                            try {
+                                const termResults = await parser.search(term);
+                                if (termResults && termResults.length > 0) {
+                                    browseResults.push(...termResults.slice(0, Math.floor(limit / commonTerms.length)));
+                                }
+                            } catch (error) {
+                                continue;
+                            }
+                        }
+                    }
+
+                    if (browseResults && browseResults.length > 0) {
+                        results.push(...browseResults);
+                        console.log(`${sourceName} browse returned ${browseResults.length} results`);
+                    }
+
+                } catch (error) {
+                    console.error(`Browse failed for ${sourceName}:`, error.message);
+                }
+            }
+
+            // Remove duplicates and limit results
+            const uniqueResults = this.removeDuplicatesByTitle(results);
+            return uniqueResults.slice(0, limit);
+
+        } catch (error) {
+            console.error('Browse error:', error);
+            return [];
+        }
+    }
+
+    // Helper method to remove duplicate manga by title
+    removeDuplicatesByTitle(results) {
+        const seen = new Map();
+        const unique = [];
+
+        for (const manga of results) {
+            // Create a normalized title for comparison
+            const normalizedTitle = manga.title
+                .toLowerCase()
+                .trim()
+                .replace(/[^\w\s]/g, '') // Remove punctuation
+                .replace(/\s+/g, ' '); // Normalize whitespace
+
+            if (!seen.has(normalizedTitle)) {
+                seen.set(normalizedTitle, manga);
+                unique.push(manga);
+            }
+        }
+
+        return unique;
+    }
+
     async findMangaInAllSources(mangaTitle, mangaUrl = null) {
         try {
             console.log(`Searching for "${mangaTitle}" in all sources...`);
@@ -101,9 +177,9 @@ class MangaScraper {
 
             // Parallelize searches across all sources with timeout
             const searchPromises = readingSources.map(async (parser) => {
-                // Add timeout wrapper for each parser
+                // Add timeout wrapper for each parser - much longer timeout for better results
                 const timeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error(`${parser.name} search timeout`)), 6000); // 6 second timeout per parser
+                    setTimeout(() => reject(new Error(`${parser.name} search timeout`)), 30000); // 30 second timeout per parser
                 });
 
                 const searchPromise = (async () => {
@@ -122,10 +198,22 @@ class MangaScraper {
                                     // Calculate relevance scores for these results against ALL known titles
                                     const scoredResults = results.map(result => {
                                         let maxScore = 0;
+
+                                        // Check against all known titles
                                         for (const knownTitle of allTitles) {
-                                            const score = this.calculateTitleSimilarity(knownTitle, result.title);
-                                            maxScore = Math.max(maxScore, score);
+                                            // Check main title
+                                            const mainScore = this.calculateTitleSimilarity(knownTitle, result.title);
+                                            maxScore = Math.max(maxScore, mainScore);
+
+                                            // Also check alternative titles if available
+                                            if (result.altTitles && Array.isArray(result.altTitles)) {
+                                                for (const altTitle of result.altTitles) {
+                                                    const altScore = this.calculateTitleSimilarity(knownTitle, altTitle);
+                                                    maxScore = Math.max(maxScore, altScore);
+                                                }
+                                            }
                                         }
+
                                         return {
                                             ...result,
                                             parserName: parser.name,
@@ -300,9 +388,9 @@ class MangaScraper {
         }
     }
 
-    async getPages(chapterUrl, sourceName) {
+    async getPages(chapterUrl, sourceName, options = {}) {
         try {
-            return await this.parserManager.getPages(chapterUrl, sourceName);
+            return await this.parserManager.getPages(chapterUrl, sourceName, options);
         } catch (error) {
             console.error('Failed to get pages:', error);
             return [];

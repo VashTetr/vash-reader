@@ -3,6 +3,7 @@ class MangaReader {
         this.currentManga = null;
         this.currentChapter = null;
         this.currentPages = [];
+        this.paginationInfo = null; // For pagination support
         this.currentPageIndex = 0;
 
         // Home page data
@@ -50,6 +51,32 @@ class MangaReader {
                 this.handleResize();
             }, 300); // Debounce resize events
         });
+    }
+
+    // Helper function to normalize pages format (handles both array and pagination object)
+    // For most sources: Always receives complete array of ALL pages (no pagination)
+    // For other sources: May receive paginated format
+    normalizePagesResult(pagesResult) {
+        if (Array.isArray(pagesResult)) {
+            // Direct array format - used by most sources
+            this.currentPages = pagesResult;
+            this.paginationInfo = null;
+            console.log(`Loaded ${pagesResult.length} pages (complete array format)`);
+        } else if (pagesResult && pagesResult.pages) {
+            // Pagination format - used by some other sources
+            this.currentPages = pagesResult.pages;
+            this.paginationInfo = {
+                totalPages: pagesResult.totalPages,
+                currentPage: pagesResult.currentPage,
+                hasNextPage: pagesResult.hasNextPage,
+                hasPrevPage: pagesResult.hasPrevPage
+            };
+            console.log(`Loaded page ${this.paginationInfo.currentPage} with ${this.currentPages.length} pages (${this.paginationInfo.totalPages} total)`);
+        } else {
+            // Fallback for unexpected format
+            this.currentPages = [];
+            this.paginationInfo = null;
+        }
     }
 
     handleResize() {
@@ -183,7 +210,11 @@ class MangaReader {
 
     async searchManga() {
         const query = document.getElementById('searchInput').value.trim();
-        if (!query) return;
+
+        // If no query provided, show popular manga as a "browse all" feature
+        if (!query) {
+            return this.browsePopularManga();
+        }
 
         // Reset pagination for new search
         this.currentSearchQuery = query;
@@ -201,14 +232,51 @@ class MangaReader {
             if (enabledSources.length === 1 && enabledSources[0] === 'Comick') {
                 const comickResults = await window.mangaAPI.searchBySource(query, 'Comick', 1, 100);
                 await this.displaySearchResults(comickResults, query, true); // true = new search
+                this.updateSearchResultsHeader(`Search Results for "${query}"`);
             } else {
                 // Use multi-source search for enabled sources
                 const results = await window.mangaAPI.searchManga(query, enabledSources);
                 await this.displaySearchResults(results, query, true); // true = new search
+                this.updateSearchResultsHeader(`Search Results for "${query}"`);
                 this.hasMoreResults = false; // Multi-source search doesn't support pagination
             }
         } catch (error) {
             this.showError('Search failed: ' + error.message);
+        }
+    }
+
+    async browsePopularManga() {
+        // Reset pagination for new browse
+        this.currentSearchQuery = '';
+        this.currentSearchFilters = null;
+        this.currentSearchPage = 1;
+        this.hasMoreResults = false; // Browse doesn't support pagination yet
+
+        this.showLoading('Loading browse results...');
+
+        try {
+            // Get enabled sources from settings
+            const enabledSources = await window.mangaAPI.getEnabledSources();
+
+            if (enabledSources.length === 0) {
+                this.showError('Please enable at least one source in settings to browse manga.');
+                return;
+            }
+
+            // Use the new browse API
+            const browseResults = await window.mangaAPI.browseManga(enabledSources, 100);
+
+            if (browseResults && browseResults.length > 0) {
+                await this.displaySearchResults(browseResults, 'Browse Results', true);
+                this.updateSearchResultsHeader(`📚 Browse Manga (${enabledSources.join(', ')})`);
+                this.currentSearchQuery = ''; // Empty query indicates browse mode
+                this.hasMoreResults = false; // Browse doesn't support pagination yet
+            } else {
+                this.showError('No browse results found. Try enabling more sources or enter a specific search term.');
+            }
+
+        } catch (error) {
+            this.showError('Failed to load browse results: ' + error.message);
         }
     }
 
@@ -418,97 +486,7 @@ class MangaReader {
         }
     }
 
-    filterSearchResults(results, searchQuery) {
-        const query = searchQuery.toLowerCase().trim();
 
-        // Calculate relevance scores
-        const scoredResults = results.map(manga => {
-            let score = 0;
-            const title = manga.title.toLowerCase();
-            const description = (manga.description || '').toLowerCase();
-
-            // Exact title match gets highest score
-            if (title === query) {
-                score += 100;
-            }
-            // Title starts with query
-            else if (title.startsWith(query)) {
-                score += 80;
-            }
-            // Title contains all words from query
-            else if (this.containsAllWords(title, query)) {
-                score += 60;
-            }
-            // Title contains some words from query
-            else if (this.containsSomeWords(title, query)) {
-                score += 40;
-            }
-            // Description contains query
-            else if (description.includes(query)) {
-                score += 20;
-            }
-            // Description contains some words
-            else if (this.containsSomeWords(description, query)) {
-                score += 10;
-            }
-
-            // Bonus for shorter titles (more likely to be exact matches)
-            if (title.length < 50) {
-                score += 5;
-            }
-
-            return { ...manga, relevanceScore: score };
-        });
-
-        // Filter out low relevance results (score < 25 for stricter filtering)
-        const filteredResults = scoredResults.filter(manga => manga.relevanceScore >= 25);
-
-        // Sort by relevance score (highest first)
-        filteredResults.sort((a, b) => b.relevanceScore - a.relevanceScore);
-
-        // Remove the relevanceScore property and return top 20 results
-        return filteredResults.slice(0, 20).map(manga => {
-            const { relevanceScore, ...mangaWithoutScore } = manga;
-            return mangaWithoutScore;
-        });
-    }
-
-    containsAllWords(text, query) {
-        const queryWords = query.split(' ').filter(word => word.length > 2);
-        return queryWords.every(word => text.includes(word));
-    }
-
-    containsSomeWords(text, query) {
-        const queryWords = query.split(' ').filter(word => word.length > 2);
-        return queryWords.some(word => text.includes(word));
-    }
-
-    highlightSearchTerms(title, searchQuery) {
-        if (!searchQuery) return title;
-
-        const query = searchQuery.toLowerCase().trim();
-        const queryWords = query.split(' ').filter(word => word.length > 2);
-
-        let highlightedTitle = title;
-
-        // First try to highlight the exact query
-        const exactRegex = new RegExp(`(${this.escapeRegex(query)})`, 'gi');
-        if (title.toLowerCase().includes(query)) {
-            highlightedTitle = highlightedTitle.replace(exactRegex, '<mark style="background: #ff6b6b; color: white; padding: 1px 3px; border-radius: 2px;">$1</mark>');
-        } else {
-            // If no exact match, highlight individual words
-            queryWords.forEach(word => {
-                const wordRegex = new RegExp(`(${this.escapeRegex(word)})`, 'gi');
-                highlightedTitle = highlightedTitle.replace(wordRegex, '<mark style="background: #ff6b6b; color: white; padding: 1px 3px; border-radius: 2px;">$1</mark>');
-            });
-        }
-
-        return highlightedTitle;
-    }
-
-    escapeRegex(string) {
-        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    }
 
     async displaySearchResults(results, searchQuery = '', isNewSearch = false) {
         const resultsGrid = document.getElementById('resultsGrid');
@@ -591,9 +569,13 @@ class MangaReader {
             } else if (this.currentSearchQuery) {
                 // Regular search
                 results = await window.mangaAPI.searchBySource(this.currentSearchQuery, 'Comick', this.currentSearchPage, 100);
+            } else {
+                // Browse mode (empty search) - load more popular manga
+                results = await window.mangaAPI.getPopular(this.currentSearchPage, 100);
             }
 
-            await this.displaySearchResults(results, this.currentSearchQuery || 'Advanced Search', false); // false = append results
+            const displayQuery = this.currentSearchQuery || 'Popular Manga';
+            await this.displaySearchResults(results, displayQuery, false); // false = append results
 
         } catch (error) {
             console.error('Failed to load more results:', error);
@@ -694,7 +676,7 @@ class MangaReader {
         // Highlight search terms in title if search query provided
         let displayTitle = manga.title;
         if (searchQuery) {
-            displayTitle = this.highlightSearchTerms(manga.title, searchQuery);
+            displayTitle = SearchUtils.highlightMatchedTerms(manga.title, searchQuery);
         }
 
         // Check if this manga is in following list
@@ -1046,8 +1028,10 @@ class MangaReader {
         this.showLoading('Loading pages...');
 
         try {
-            const pages = await window.mangaAPI.getPages(chapter.url, chapter.source);
-            this.currentPages = pages;
+            const pagesResult = await window.mangaAPI.getPages(chapter.url, chapter.source);
+
+            // Use helper function to normalize the pages format
+            this.normalizePagesResult(pagesResult);
 
             // Initialize reading progress tracking (will be updated as user scrolls)
             this.initializeProgressTracking();
@@ -1223,11 +1207,18 @@ class MangaReader {
             // Add error handling for images
             img.onerror = () => {
                 console.error(`Failed to load image: ${imageUrl}`);
+
+                // Show error placeholder
+                img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjBmMGYwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkZhaWxlZCB0byBsb2FkIHBhZ2U8L3RleHQ+PC9zdmc+';
                 img.alt = `Failed to load page ${page.pageNumber}`;
                 img.style.background = '#333';
                 img.style.color = '#fff';
                 img.style.padding = '20px';
                 img.style.textAlign = 'center';
+                img.style.display = 'flex';
+                img.style.alignItems = 'center';
+                img.style.justifyContent = 'center';
+                img.style.minHeight = '200px';
             };
 
             img.onload = () => {
@@ -2296,6 +2287,18 @@ class MangaReader {
     showSearchResults() {
         this.hideAllViews();
         document.getElementById('searchResults').classList.remove('hidden');
+
+        // Re-setup infinite scroll if we have search results and more results available
+        if (this.hasMoreResults && (this.currentSearchQuery || this.currentSearchFilters)) {
+            this.setupInfiniteScroll();
+        }
+    }
+
+    updateSearchResultsHeader(title) {
+        const header = document.querySelector('#searchResults h2');
+        if (header) {
+            header.textContent = title;
+        }
     }
 
     async showMangaDetails(manga, continueInfo = null, fromPage = null) {
@@ -2720,6 +2723,14 @@ class MangaReader {
         if (!document.getElementById('reader').classList.contains('hidden')) {
             this.cleanupProgressTracking();
             this.closeReaderNavMenu(); // Close navigation menu
+        }
+
+        // Clean up search-specific listeners when leaving search results
+        if (!document.getElementById('searchResults').classList.contains('hidden')) {
+            if (this.scrollListener) {
+                window.removeEventListener('scroll', this.scrollListener);
+                this.scrollListener = null;
+            }
         }
 
         document.getElementById('homePage').classList.add('hidden');
@@ -3193,8 +3204,25 @@ class MangaReader {
             if (targetChapter) {
                 // Load the chapter directly
                 this.currentChapter = targetChapter;
-                const pages = await window.mangaAPI.getPages(targetChapter.url, continueInfo.parserName);
-                this.currentPages = pages;
+                const pagesResult = await window.mangaAPI.getPages(targetChapter.url, continueInfo.parserName);
+
+                // Handle both old format (array) and new pagination format (object)
+                if (Array.isArray(pagesResult)) {
+                    this.currentPages = pagesResult;
+                    this.paginationInfo = null;
+                } else if (pagesResult && pagesResult.pages) {
+                    this.currentPages = pagesResult.pages;
+                    this.paginationInfo = {
+                        totalPages: pagesResult.totalPages,
+                        currentPage: pagesResult.currentPage,
+                        hasNextPage: pagesResult.hasNextPage,
+                        hasPrevPage: pagesResult.hasPrevPage
+                    };
+                } else {
+                    this.currentPages = [];
+                    this.paginationInfo = null;
+                }
+
                 this.currentPageIndex = continueInfo.progress.pageNumber || 0;
 
                 await this.displayReader();
@@ -5166,28 +5194,16 @@ class MangaReader {
     }
 
     findBestTitleMatch(searchResults, originalTitle, alternativeTitles) {
-        // Use the same title matching logic as regular search
-        const query = originalTitle.toLowerCase().trim();
-
-        // Calculate relevance scores for each result
+        // Use SearchUtils for title matching
         const scoredResults = searchResults.map(manga => {
-            let score = 0;
-            const title = manga.title.toLowerCase();
+            // Calculate base score using SearchUtils
+            let score = SearchUtils.calculateRelevance(originalTitle, manga);
 
-            // Check against original title
-            if (title === query) {
-                score += 100;
-            } else if (title.startsWith(query)) {
-                score += 80;
-            } else if (this.containsAllWords(title, query)) {
-                score += 60;
-            } else if (this.containsSomeWords(title, query)) {
-                score += 40;
-            }
-
-            // Check against alternative titles
+            // Check against alternative titles for additional scoring
             for (const altTitle of alternativeTitles) {
                 const altQuery = altTitle.toLowerCase().trim();
+                const title = manga.title.toLowerCase();
+
                 if (title === altQuery) {
                     score += 90;
                     break;

@@ -29,11 +29,22 @@ class TooniTubeParser extends BaseParser {
                     const title = this.cleanText($title.text() || $link.attr('title') || $link.text() || '');
 
                     if (href && title) {
+                        // Check data-src first (for lazy-loaded images), then fallback to src
+                        let coverUrl = null;
+                        const dataSrc = $img.attr('data-src');
+                        const src = $img.attr('src');
+
+                        if (dataSrc && !dataSrc.includes('x.gif') && !dataSrc.includes('loading')) {
+                            coverUrl = this.absoluteUrl(dataSrc);
+                        } else if (src && !src.includes('x.gif') && !src.includes('loading')) {
+                            coverUrl = this.absoluteUrl(src);
+                        }
+
                         results.push({
                             id: href.split('/').pop() || href.split('=').pop(),
                             title: title,
                             url: this.absoluteUrl(href),
-                            coverUrl: $img.attr('src') ? this.absoluteUrl($img.attr('src')) : null,
+                            coverUrl: coverUrl,
                             description: this.cleanText($el.find('.description, .summary, p').first().text()),
                             source: this.name
                         });

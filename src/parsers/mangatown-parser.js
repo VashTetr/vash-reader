@@ -1,8 +1,10 @@
 const BaseParser = require('./base-parser');
+const ParserUtils = require('../utils/parser-utils');
 
 class MangaTownParser extends BaseParser {
     constructor() {
         super('MangaTown', 'https://www.mangatown.com');
+        this.minRequestInterval = 200; // Slower requests for MangaTown
     }
 
     async search(query) {
@@ -29,13 +31,20 @@ class MangaTownParser extends BaseParser {
                     const title = this.cleanText($title.text() || $link.attr('title') || $link.text() || '');
 
                     if (href && title) {
+                        // Enhanced image extraction
+                        const coverUrl = this.extractImageSrc($img);
+
                         results.push({
-                            id: href.split('/').pop() || href.split('=').pop(),
+                            id: this.generateId(href),
                             title: title,
                             url: this.absoluteUrl(href),
-                            coverUrl: $img.attr('src') ? this.absoluteUrl($img.attr('src')) : null,
+                            coverUrl: coverUrl ? this.absoluteUrl(coverUrl) : null,
                             description: this.cleanText($el.find('.description, .summary, p').first().text()),
-                            source: this.name
+                            source: this.name,
+                            // Additional metadata
+                            rating: this.extractRating($el),
+                            status: this.normalizeState($el.find('.status, .state').text()),
+                            lastUpdated: this.parseDate($el.find('.date, .updated, .time').text())
                         });
                     }
                 }
@@ -68,27 +77,25 @@ class MangaTownParser extends BaseParser {
                     const href = $link.attr('href');
                     const chapterText = this.cleanText($link.text() || $el.text());
 
-                    // Extract chapter number
-                    let chapterNumber = '0';
-                    const chapterMatch = chapterText.match(/(?:chapter|ch\.?|episode|ep\.?)\s*(\d+(?:\.\d+)?)/i);
-                    if (chapterMatch) {
-                        chapterNumber = chapterMatch[1];
-                    } else {
-                        const numberMatch = chapterText.match(/(\d+(?:\.\d+)?)/);
-                        if (numberMatch) {
-                            chapterNumber = numberMatch[1];
-                        } else {
-                            chapterNumber = (i + 1).toString();
-                        }
-                    }
+                    // Enhanced chapter number extraction
+                    const chapterNumber = this.extractChapterNumber(chapterText) || (i + 1);
+
+                    // Extract date if available
+                    const dateText = $el.find('.date, .time, .updated').text() ||
+                        $el.parent().find('.date, .time, .updated').text();
+                    const uploadDate = this.parseDate(dateText);
 
                     if (href && chapterText) {
                         chapters.push({
-                            id: href.split('/').pop() || href.split('=').pop(),
-                            number: chapterNumber,
+                            id: this.generateId(href),
+                            number: chapterNumber.toString(),
                             title: chapterText,
                             url: this.absoluteUrl(href),
-                            source: this.name
+                            source: this.name,
+                            uploadDate: uploadDate,
+                            // Additional metadata
+                            scanlator: this.cleanText($el.find('.scanlator, .group').text()),
+                            views: this.extractViews($el)
                         });
                     }
                 }
@@ -117,15 +124,15 @@ class MangaTownParser extends BaseParser {
             const pageSelect = $('div.page_select select');
 
             if (pageSelect.length === 0) {
-                // Webtoon format - direct images (following Kotatsu exactly)
+                // Webtoon format - direct images
                 console.log('MangaTown: Detected webtoon format');
                 const images = $('div#viewer.read_img img.image');
 
                 images.each((i, element) => {
                     const $img = $(element);
-                    const src = $img.attr('src');
+                    const src = this.extractImageSrc($img);
 
-                    if (src) {
+                    if (src && !ParserUtils.isPlaceholderImage(src)) {
                         pages.push({
                             pageNumber: i + 1,
                             imageUrl: this.absoluteUrl(src)
@@ -133,11 +140,11 @@ class MangaTownParser extends BaseParser {
                     }
                 });
             } else {
-                // Manga format - page selector (following Kotatsu exactly)
+                // Manga format - page selector
                 console.log('MangaTown: Detected manga format with page selector');
                 const options = pageSelect.find('option');
 
-                // Return page URLs that will be resolved later (like Kotatsu does)
+                // Return page URLs that will be resolved later
                 options.each((i, option) => {
                     const $option = $(option);
                     const pageUrl = $option.attr('value');
@@ -145,8 +152,8 @@ class MangaTownParser extends BaseParser {
                     if (pageUrl && !pageUrl.endsWith('featured.html')) {
                         pages.push({
                             pageNumber: i + 1,
-                            imageUrl: this.absoluteUrl(pageUrl), // This will be resolved to actual image URL
-                            needsResolution: true // Flag to indicate this needs getPageUrl resolution
+                            imageUrl: this.absoluteUrl(pageUrl),
+                            needsResolution: true
                         });
                     }
                 });
@@ -160,28 +167,90 @@ class MangaTownParser extends BaseParser {
         }
     }
 
-    // Method to resolve page URL to actual image URL (like Kotatsu's getPageUrl)
+    // Method to resolve page URL to actual image URL
     async getPageUrl(pageUrl) {
         try {
             if (pageUrl.startsWith('//')) {
-                // Webtoon format - already has image URL
                 return this.absoluteUrl(pageUrl);
             }
 
-            // Manga format - need to resolve page URL to image URL
             console.log(`MangaTown: Resolving page URL: ${pageUrl}`);
             const html = await this.fetchHtml(pageUrl);
             const $ = this.loadHtml(html);
-            const imgSrc = $('#image').attr('src');
 
-            if (imgSrc) {
+            // Try multiple selectors for the image
+            const $img = $('#image, .read_img img, .viewer img').first();
+            const imgSrc = this.extractImageSrc($img);
+
+            if (imgSrc && !ParserUtils.isPlaceholderImage(imgSrc)) {
                 return this.absoluteUrl(imgSrc);
             }
 
             return pageUrl; // Fallback
         } catch (error) {
             console.error('MangaTown getPageUrl error:', error.message);
-            return pageUrl; // Fallback
+            return pageUrl;
+        }
+    }
+
+    // Helper methods for enhanced metadata extraction
+    extractRating($el) {
+        const ratingText = $el.find('.rating, .score, .stars').text();
+        const ratingMatch = ratingText.match(/(\d+(?:\.\d+)?)/);
+        return ratingMatch ? parseFloat(ratingMatch[1]) : null;
+    }
+
+    extractViews($el) {
+        const viewsText = $el.find('.views, .read-count').text();
+        const viewsMatch = viewsText.match(/(\d+(?:,\d+)*)/);
+        return viewsMatch ? parseInt(viewsMatch[1].replace(/,/g, '')) : null;
+    }
+
+    // Browse functionality for popular manga
+    async browse() {
+        try {
+            const browseUrl = `${this.baseUrl}/directory/`;
+            console.log(`MangaTown browsing: ${browseUrl}`);
+
+            const html = await this.fetchHtml(browseUrl);
+            const $ = this.loadHtml(html);
+
+            const results = [];
+            const items = $('.manga_pic_list li, .book-item, .manga-item');
+
+            items.each((i, element) => {
+                const $el = $(element);
+                const $link = $el.find('a').first();
+                const $img = $el.find('img').first();
+                const $title = $el.find('.title, .name, h3, h4, .manga_name').first();
+
+                if ($link.length) {
+                    const href = $link.attr('href');
+                    const title = this.cleanText($title.text() || $link.attr('title') || $link.text() || '');
+
+                    if (href && title) {
+                        const coverUrl = this.extractImageSrc($img);
+
+                        results.push({
+                            id: this.generateId(href),
+                            title: title,
+                            url: this.absoluteUrl(href),
+                            coverUrl: coverUrl ? this.absoluteUrl(coverUrl) : null,
+                            description: this.cleanText($el.find('.description, .summary, p').first().text()),
+                            source: this.name,
+                            rating: this.extractRating($el),
+                            status: this.normalizeState($el.find('.status, .state').text()),
+                            lastUpdated: this.parseDate($el.find('.date, .updated, .time').text())
+                        });
+                    }
+                }
+            });
+
+            console.log(`MangaTown browse found ${results.length} results`);
+            return results.slice(0, 20); // Limit to 20 results for browse
+        } catch (error) {
+            console.error('MangaTown browse error:', error.message);
+            return [];
         }
     }
 }

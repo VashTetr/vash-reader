@@ -32,11 +32,20 @@ class MangaJinxParser extends BaseParser {
                     }
 
                     if (href && title) {
+                        // Try multiple attributes for cover image (lazy loading)
+                        let coverUrl = null;
+                        if ($img.length) {
+                            const imgSrc = $img.attr('data-src') || $img.attr('data-original') || $img.attr('src');
+                            if (imgSrc && !imgSrc.includes('x.gif') && !imgSrc.includes('placeholder')) {
+                                coverUrl = this.absoluteUrl(imgSrc);
+                            }
+                        }
+
                         results.push({
                             id: href.split('/').pop() || href.split('-').pop(),
                             title: title,
                             url: this.absoluteUrl(href),
-                            coverUrl: $img.attr('src') ? this.absoluteUrl($img.attr('src')) : null,
+                            coverUrl: coverUrl,
                             description: this.cleanText($el.find('.description, .summary, p').first().text()),
                             source: this.name
                         });

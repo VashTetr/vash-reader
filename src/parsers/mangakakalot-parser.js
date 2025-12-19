@@ -5,6 +5,7 @@ class MangakakalotParser extends BaseParser {
         super('Mangakakalot', 'https://chapmanganato.com');
         this.alternativeDomains = [
             'https://chapmanganato.com',
+            'https://nelomanga.net',
             'https://readmanganato.com',
             'https://manganato.com',
             'https://mangakakalot.com'
@@ -57,11 +58,20 @@ class MangakakalotParser extends BaseParser {
                     const title = this.cleanText($link.text() || $link.attr('title') || '');
 
                     if (href && title) {
+                        // Try multiple attributes for cover image (lazy loading)
+                        let coverUrl = null;
+                        if ($img.length) {
+                            const imgSrc = $img.attr('data-src') || $img.attr('data-original') || $img.attr('src');
+                            if (imgSrc && !imgSrc.includes('x.gif') && !imgSrc.includes('placeholder')) {
+                                coverUrl = this.absoluteUrl(imgSrc);
+                            }
+                        }
+
                         results.push({
                             id: href.split('/').pop() || href.split('=').pop(),
                             title: title,
                             url: this.absoluteUrl(href),
-                            coverUrl: $img.attr('src') ? this.absoluteUrl($img.attr('src')) : null,
+                            coverUrl: coverUrl,
                             description: this.cleanText($el.find('.story_item_right p, .item-summary, .item-description').text()),
                             source: this.name
                         });

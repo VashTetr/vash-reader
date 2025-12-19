@@ -34,7 +34,7 @@ app.whenReady().then(() => {
     const { session } = require('electron');
 
     session.defaultSession.webRequest.onBeforeSendHeaders(
-        { urls: ['*://zjcdn.mangahere.org/*', '*://mangahere.org/*', '*://data.tnlycdn.com/*', '*://mangapark.net/*', '*://manhwaclub.net/*', '*://img01.manga18fx.com/*', '*://img01.manga18.me/*', '*://*.toonilycdnv2.xyz/*'] },
+        { urls: ['*://zjcdn.mangahere.org/*', '*://mangahere.org/*', '*://fmcdn.mangahere.com/*', '*://data.tnlycdn.com/*', '*://mangapark.net/*', '*://manhwaclub.net/*', '*://img01.manga18fx.com/*', '*://img01.manga18.me/*', '*://*.toonilycdnv2.xyz/*', '*://res.mbbcdn.com/*', '*://res.mgcdn.xyz/*', '*://cutiecomics.com/uploads/*', '*://reaper-scans.com/*', '*://*.reaper-scans.com/*', '*://mangahub.io/*', '*://*.mangahub.io/*', '*://readmanga.live/*', '*://*.readmanga.live/*', '*://a.zazaza.me/*', '*://3.readmanga.ru/*', '*://*.grouple.co/*', '*://mangafoxfull.com/*', '*://*.mangafoxfull.com/*', '*://lectortmo.com/*', '*://*.lectortmo.com/*'] },
         (details, callback) => {
             if (details.url.includes('tnlycdn.com')) {
                 // Toonily images
@@ -48,8 +48,32 @@ app.whenReady().then(() => {
             } else if (details.url.includes('toonilycdnv2.xyz')) {
                 // TooniTube images
                 details.requestHeaders['Referer'] = 'https://toonitube.com/';
+            } else if (details.url.includes('mbbcdn.com') || details.url.includes('mgcdn.xyz')) {
+                // TrueManga images
+                details.requestHeaders['Referer'] = 'https://truemanga.com/';
+            } else if (details.url.includes('cutiecomics.com')) {
+                // CutieComics images
+                details.requestHeaders['Referer'] = 'https://cutiecomics.com/';
+            } else if (details.url.includes('reaper-scans.com')) {
+                // ReaperScans images
+                details.requestHeaders['Referer'] = 'https://reaper-scans.com/';
+            } else if (details.url.includes('mangahub.io')) {
+                // MangaHub images
+                details.requestHeaders['Referer'] = 'https://mangahub.io/';
+            } else if (details.url.includes('readmanga.live') || details.url.includes('zazaza.me') || details.url.includes('readmanga.ru') || details.url.includes('grouple.co')) {
+                // ReadManga/Grouple images
+                details.requestHeaders['Referer'] = 'https://readmanga.live/';
+            } else if (details.url.includes('mangafoxfull.com')) {
+                // MangaFox images
+                details.requestHeaders['Referer'] = 'https://mangafoxfull.com/';
+            } else if (details.url.includes('lectortmo.com')) {
+                // TMOManga images
+                details.requestHeaders['Referer'] = 'https://lectortmo.com/';
+            } else if (details.url.includes('mangahere.com') || details.url.includes('mangahere.org')) {
+                // MangaTown/MangaHere images (including CDN)
+                details.requestHeaders['Referer'] = 'https://www.mangatown.com/';
             } else {
-                // MangaTown/MangaHere images
+                // Default fallback
                 details.requestHeaders['Referer'] = 'https://www.mangatown.com/';
             }
             details.requestHeaders['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
@@ -103,6 +127,15 @@ ipcMain.handle('advanced-search', async (event, filters) => {
     }
 });
 
+ipcMain.handle('browse-manga', async (event, enabledSources, limit = 100) => {
+    try {
+        return await mangaScraper.browseManga(enabledSources, limit);
+    } catch (error) {
+        console.error('Browse manga error:', error);
+        return { error: error.message };
+    }
+});
+
 ipcMain.handle('get-genres', async (event) => {
     try {
         return await mangaScraper.getGenres();
@@ -130,9 +163,9 @@ ipcMain.handle('get-chapters', async (event, mangaUrl, source) => {
     }
 });
 
-ipcMain.handle('get-pages', async (event, chapterUrl, source) => {
+ipcMain.handle('get-pages', async (event, chapterUrl, source, options = {}) => {
     try {
-        return await mangaScraper.getPages(chapterUrl, source);
+        return await mangaScraper.getPages(chapterUrl, source, options);
     } catch (error) {
         console.error('Pages error:', error);
         return { error: error.message };

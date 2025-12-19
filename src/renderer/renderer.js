@@ -2122,10 +2122,25 @@ class MangaReader {
         const notificationDate = new Date(manga.latestNotificationDate);
         const timeAgo = this.getTimeAgo(notificationDate);
 
-        // Create continue button - use nextChapterToRead from notification if available
+        // Get current reading progress to determine the actual next chapter to read
+        let nextChapterToRead = manga.nextChapterToRead; // Default from notification
+        let hasCurrentProgress = false;
+
+        try {
+            const currentProgress = await window.mangaAPI.getReadingProgress(manga.id, manga.source);
+            if (currentProgress && currentProgress.chapterNumber > 0) {
+                // If user has made progress, the next chapter is current + 1
+                nextChapterToRead = currentProgress.chapterNumber + 1;
+                hasCurrentProgress = true;
+            }
+        } catch (error) {
+            console.log('Could not fetch current progress for following update:', manga.title, error.message);
+        }
+
+        // Create continue button based on current progress
         let continueButton = '';
-        if (manga.nextChapterToRead) {
-            continueButton = `<button class="continue-btn-home" data-manga-id="${manga.id}" data-source="${manga.source}" data-chapter="${manga.nextChapterToRead}">📖 Continue Ch. ${manga.nextChapterToRead}</button>`;
+        if (nextChapterToRead && nextChapterToRead > 0) {
+            continueButton = `<button class="continue-btn-home" data-manga-id="${manga.id}" data-source="${manga.source}" data-chapter="${nextChapterToRead}">📖 Continue Ch. ${nextChapterToRead}</button>`;
         } else {
             continueButton = `<button class="start-reading-btn-home" data-manga-id="${manga.id}" data-source="${manga.source}">📚 Start Reading</button>`;
         }
@@ -4326,13 +4341,24 @@ class MangaReader {
         let progressChapter = null;
         let hasProgress = false;
 
-        // Check imported reading progress first
-        if (manga.importedReadingProgress && manga.importedReadingProgress.chapterNumber > 0) {
+        // Check actual reading progress first
+        try {
+            const actualProgress = await window.mangaAPI.getReadingProgress(manga.id, manga.source);
+            if (actualProgress && actualProgress.chapterNumber > 0) {
+                progressChapter = actualProgress.chapterNumber;
+                hasProgress = true;
+            }
+        } catch (error) {
+            console.log('Could not fetch reading progress for', manga.title, ':', error.message);
+        }
+
+        // If no actual progress, check imported reading progress
+        if (!hasProgress && manga.importedReadingProgress && manga.importedReadingProgress.chapterNumber > 0) {
             progressChapter = manga.importedReadingProgress.chapterNumber;
             hasProgress = true;
         }
         // Check if manga has lastKnownChapter (from CSV or updates)
-        else if (manga.lastKnownChapter && manga.lastKnownChapter > 0) {
+        else if (!hasProgress && manga.lastKnownChapter && manga.lastKnownChapter > 0) {
             progressChapter = manga.lastKnownChapter;
             hasProgress = true;
         }

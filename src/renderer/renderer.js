@@ -34,6 +34,10 @@ class MangaReader {
         this.navigationHistory = [];
         this.currentContinueInfo = null;
 
+        // Source caching
+        this.mangaSourcesCache = new Map();
+        this.sourceCacheTimeout = 5 * 60 * 1000; // 5 minutes cache timeout
+
         this.initializeEventListeners();
         this.loadHomePage();
         this.updateNotificationBadge();
@@ -127,6 +131,9 @@ class MangaReader {
         addListener('backFromSettings', 'click', () => this.goBack());
         addListener('backToSearchResults', 'click', () => this.goBack());
         addListener('backFromReader', 'click', () => this.goBackFromReader());
+
+        // Sources refresh
+        addListener('refreshSources', 'click', () => this.refreshMangaSources());
 
         // Reader navigation menu
         addListener('readerNavToggle', 'click', () => this.toggleReaderNavMenu());
@@ -2559,10 +2566,65 @@ class MangaReader {
 
     async findMangaSources(manga) {
         const sourcesContainer = document.getElementById('mangaSources');
+
+        // Create cache key based on manga title and URL
+        const cacheKey = `${manga.title}|${manga.url || ''}`;
+
+        // Check if we have cached sources that are still valid
+        const cachedData = this.mangaSourcesCache.get(cacheKey);
+        const now = Date.now();
+
+        if (cachedData && (now - cachedData.timestamp) < this.sourceCacheTimeout) {
+            console.log('📋 Using cached sources for:', manga.title);
+
+            // Display cached sources immediately
+            sourcesContainer.innerHTML = '';
+            cachedData.sources.forEach(sourceData => {
+                const card = this.createSourceCard(manga, sourceData.source, sourceData.parserName);
+                sourcesContainer.appendChild(card);
+
+                // Restore cached chapter count if available
+                if (sourceData.chapterCount !== undefined) {
+                    const chapterCountElement = card.querySelector('.chapter-count');
+                    const statusElement = card.querySelector('.source-status');
+
+                    if (sourceData.chapterCount > 0) {
+                        chapterCountElement.textContent = sourceData.chapterCount;
+                        statusElement.textContent = `${sourceData.chapterCount} Chapter${sourceData.chapterCount !== 1 ? 's' : ''} Available`;
+                        statusElement.className = 'source-status available';
+                    } else {
+                        chapterCountElement.textContent = '0';
+                        statusElement.textContent = 'No chapters available';
+                        statusElement.className = 'source-status unavailable';
+                    }
+                }
+            });
+
+            // Show completion status
+            if (cachedData.sources.length > 0) {
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'sources-complete-message';
+                statusDiv.innerHTML = `✅ Found ${cachedData.sources.length} source${cachedData.sources.length > 1 ? 's' : ''} (cached)`;
+                sourcesContainer.appendChild(statusDiv);
+
+                setTimeout(() => {
+                    if (statusDiv.parentNode) {
+                        statusDiv.remove();
+                    }
+                }, 3000);
+            }
+
+            this.hideLoading();
+            return;
+        }
+
+        // No valid cache, fetch fresh sources
+        console.log('🔍 Fetching fresh sources for:', manga.title);
         sourcesContainer.innerHTML = '<div class="loading-message">🔍 Finding available sources...</div>';
 
         // Track found sources to avoid duplicates
         const foundSources = new Map();
+        const sourcesForCache = [];
         let sourcesFound = 0;
 
         // Helper function to add a source as soon as it's found
@@ -2586,14 +2648,26 @@ class MangaReader {
             const card = this.createSourceCard(manga, source, parserName);
             sourcesContainer.appendChild(card);
 
+            // Store for cache (chapter count will be added later)
+            sourcesForCache.push({
+                source: source,
+                parserName: parserName
+            });
+
             console.log(`✅ Added source: ${parserName} (${sourcesFound} total)`);
         };
 
-        // Helper function to show final status
+        // Helper function to show final status and cache results
         const showFinalStatus = () => {
             if (sourcesFound === 0) {
                 sourcesContainer.innerHTML = '<div class="loading-message">❌ No sources found for this manga. Try searching for it manually.</div>';
             } else {
+                // Cache the found sources
+                this.mangaSourcesCache.set(cacheKey, {
+                    sources: sourcesForCache,
+                    timestamp: Date.now()
+                });
+
                 // Add a small indicator showing search is complete
                 const statusDiv = document.createElement('div');
                 statusDiv.className = 'sources-complete-message';
@@ -2723,6 +2797,10 @@ class MangaReader {
                 statusElement.className = 'source-status unavailable';
                 card.classList.add('loading'); // Disable clicking
             }
+
+            // Update cache with chapter count
+            this.updateSourceCacheWithChapterCount(source, parserName, chapters.length);
+
         } catch (error) {
             console.error(`Failed to check chapters for ${parserName}:`, error);
 
@@ -2733,6 +2811,40 @@ class MangaReader {
             statusElement.textContent = 'Unavailable';
             statusElement.className = 'source-status unavailable';
             card.classList.add('loading'); // Disable clicking
+
+            // Update cache with error state
+            this.updateSourceCacheWithChapterCount(source, parserName, -1);
+        }
+    }
+
+    updateSourceCacheWithChapterCount(source, parserName, chapterCount) {
+        // Find and update the cached source with chapter count
+        for (const [cacheKey, cachedData] of this.mangaSourcesCache.entries()) {
+            const sourceIndex = cachedData.sources.findIndex(s =>
+                s.parserName === parserName && s.source.url === source.url
+            );
+
+            if (sourceIndex !== -1) {
+                cachedData.sources[sourceIndex].chapterCount = chapterCount;
+                break;
+            }
+        }
+    }
+
+    clearSourcesCache() {
+        this.mangaSourcesCache.clear();
+        console.log('🗑️ Sources cache cleared');
+    }
+
+    refreshMangaSources() {
+        if (this.currentManga) {
+            // Clear cache for current manga
+            const cacheKey = `${this.currentManga.title}|${this.currentManga.url || ''}`;
+            this.mangaSourcesCache.delete(cacheKey);
+
+            // Refresh sources
+            this.findMangaSources(this.currentManga);
+            console.log('🔄 Refreshing sources for:', this.currentManga.title);
         }
     }
 

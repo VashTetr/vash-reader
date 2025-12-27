@@ -454,6 +454,72 @@ ipcMain.handle('check-for-updates', async (event) => {
     }
 });
 
+// Smart chapter validation function
+function getValidatedLatestChapter(chapters) {
+    if (!chapters || chapters.length === 0) {
+        return 0;
+    }
+
+    // Convert chapter numbers to floats and sort in descending order
+    const chapterNumbers = chapters
+        .map(ch => parseFloat(ch.number) || 0)
+        .filter(num => num > 0)
+        .sort((a, b) => b - a);
+
+    if (chapterNumbers.length === 0) {
+        return 0;
+    }
+
+    // If we have 5 or fewer chapters, just return the highest
+    if (chapterNumbers.length <= 5) {
+        return chapterNumbers[0];
+    }
+
+    // Check the last 5 chapters for logical incrementation
+    const last5Chapters = chapterNumbers.slice(0, 5);
+
+    console.log(`🔍 Validating last 5 chapters: [${last5Chapters.join(', ')}]`);
+
+    // Calculate the differences between consecutive chapters
+    const differences = [];
+    for (let i = 0; i < last5Chapters.length - 1; i++) {
+        const diff = last5Chapters[i] - last5Chapters[i + 1];
+        differences.push(diff);
+    }
+
+    console.log(`📊 Chapter differences: [${differences.join(', ')}]`);
+
+    // Check if the differences are consistent (logical incrementation)
+    // Find the most common difference pattern (ignoring outliers)
+    const reasonableDifferences = differences.filter(diff => diff <= 10); // Reasonable chapter gaps
+
+    if (reasonableDifferences.length >= 2) {
+        const avgReasonableDiff = reasonableDifferences.reduce((sum, diff) => sum + diff, 0) / reasonableDifferences.length;
+        const maxReasonableDiff = Math.max(3, avgReasonableDiff * 2); // More conservative threshold
+
+        console.log(`📈 Average reasonable difference: ${avgReasonableDiff.toFixed(2)}, Max reasonable: ${maxReasonableDiff.toFixed(2)}`);
+
+        // Check each chapter from highest to lowest, return first valid one
+        for (let i = 0; i < last5Chapters.length - 1; i++) {
+            const currentDiff = differences[i];
+            if (currentDiff <= maxReasonableDiff) {
+                console.log(`✅ Using validated latest chapter: ${last5Chapters[i]}`);
+                return last5Chapters[i];
+            } else {
+                console.log(`⚠️ Skipping outlier chapter: ${last5Chapters[i]} (diff: ${currentDiff.toFixed(2)} > ${maxReasonableDiff.toFixed(2)})`);
+            }
+        }
+
+        // If all differences are outliers, return the last chapter (most conservative)
+        console.log(`⚠️ All chapters seem to be outliers, using most conservative: ${last5Chapters[last5Chapters.length - 1]}`);
+        return last5Chapters[last5Chapters.length - 1];
+    }
+
+    // If we can't determine a pattern, return the highest (fallback)
+    console.log(`✅ Cannot determine pattern, using highest: ${last5Chapters[0]}`);
+    return last5Chapters[0];
+}
+
 // Chapter update checking function
 async function checkForNewChapters() {
     try {
@@ -467,6 +533,15 @@ async function checkForNewChapters() {
 
         console.log(`Checking ${follows.length} followed manga for updates...`);
 
+        // Send initial progress
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('update-progress', {
+                current: 0,
+                total: follows.length,
+                status: 'Starting update check...'
+            });
+        }
+
         // Process manga in batches to avoid overwhelming the servers
         const batchSize = 3;
         for (let i = 0; i < follows.length; i += batchSize) {
@@ -477,6 +552,16 @@ async function checkForNewChapters() {
                 try {
                     results.checked++;
                     console.log(`Checking updates for: ${manga.title}`);
+
+                    // Send progress update
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        mainWindow.webContents.send('update-progress', {
+                            current: results.checked,
+                            total: follows.length,
+                            status: `Checking ${manga.title}...`,
+                            mangaTitle: manga.title
+                        });
+                    }
 
                     // Find sources for this manga
                     const sources = await mangaScraper.findMangaInAllSources(manga.title, manga.url);
@@ -495,11 +580,11 @@ async function checkForNewChapters() {
                             const chapters = await mangaScraper.getChapters(source.url, source.parserName);
 
                             if (chapters.length > 0) {
-                                // Find the highest chapter number
-                                const highestChapter = Math.max(...chapters.map(ch => parseFloat(ch.number) || 0));
+                                // Use smart chapter validation instead of simple Math.max
+                                const validatedLatestChapter = getValidatedLatestChapter(chapters);
 
-                                if (highestChapter > latestChapterFound) {
-                                    latestChapterFound = highestChapter;
+                                if (validatedLatestChapter > latestChapterFound) {
+                                    latestChapterFound = validatedLatestChapter;
                                     bestSource = source;
                                 }
                             }
@@ -583,6 +668,17 @@ async function checkForNewChapters() {
         }
 
         console.log(`Update check completed: ${results.checked} checked, ${results.newChapters} new chapters, ${results.errors} errors`);
+
+        // Send completion progress
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('update-progress', {
+                current: follows.length,
+                total: follows.length,
+                status: `Completed! Found ${results.newChapters} new chapter${results.newChapters !== 1 ? 's' : ''}`,
+                completed: true
+            });
+        }
+
         return results;
 
     } catch (error) {

@@ -70,3 +70,7 @@ contextBridge.exposeInMainWorld('mangaAPI', {
     disableSource: (sourceName) => ipcRenderer.invoke('disable-source', sourceName),
     resetSourcesToDefault: () => ipcRenderer.invoke('reset-sources-to-default')
 });
+
+contextBridge.exposeInMainWorld('electronAPI', {
+    onUpdateProgress: (callback) => ipcRenderer.on('update-progress', (event, data) => callback(data))
+});

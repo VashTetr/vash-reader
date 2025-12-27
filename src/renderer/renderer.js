@@ -43,6 +43,11 @@ class MangaReader {
         this.updateNotificationBadge();
         this.updateFilterToggle();
 
+        // Listen for update progress from main process
+        window.electronAPI.onUpdateProgress((progressData) => {
+            this.updateProgressIndicator(progressData);
+        });
+
         // Check for new chapters on startup (with delay to let app load first)
         setTimeout(() => {
             this.checkForNewChaptersIfNeeded();
@@ -134,6 +139,9 @@ class MangaReader {
 
         // Sources refresh
         addListener('refreshSources', 'click', () => this.refreshMangaSources());
+
+        // Progress tooltip hover functionality
+        this.setupProgressTooltipHover();
 
         // Reader navigation menu
         addListener('readerNavToggle', 'click', () => this.toggleReaderNavMenu());
@@ -943,6 +951,92 @@ class MangaReader {
             const checkBtn = document.getElementById('checkUpdatesBtn');
             checkBtn.disabled = false;
             checkBtn.innerHTML = '🔄 Check for Updates';
+        }
+    }
+
+    updateProgressIndicator(progressData) {
+        const { current, total, status, mangaTitle, completed } = progressData;
+
+        // Update window title with current manga
+        if (completed) {
+            document.title = 'Vash Reader';
+        } else {
+            if (mangaTitle) {
+                // Truncate long manga titles for window title
+                const truncatedTitle = mangaTitle.length > 30 ? mangaTitle.substring(0, 30) + '...' : mangaTitle;
+                document.title = `🔄 Checking ${current}/${total} - ${truncatedTitle} - Vash Reader`;
+            } else {
+                document.title = `🔄 Checking ${current}/${total} - Vash Reader`;
+            }
+        }
+
+        // Show/hide progress tooltip
+        const progressTooltip = document.getElementById('updateProgressTooltip');
+        if (progressTooltip) {
+            if (completed) {
+                // Hide tooltip after a delay
+                setTimeout(() => {
+                    progressTooltip.classList.add('hidden');
+                    progressTooltip.style.opacity = '0';
+                    progressTooltip.style.visibility = 'hidden';
+                }, 3000);
+            } else {
+                // Make tooltip available but don't show it automatically
+                progressTooltip.classList.remove('hidden');
+                // Don't automatically show - let hover handle visibility
+            }
+        }
+
+        // Update progress bar elements
+        const progressStatus = document.getElementById('progressStatus');
+        const progressCounter = document.getElementById('progressCounter');
+        const progressFill = document.getElementById('progressFill');
+        const currentMangaTitle = document.getElementById('currentMangaTitle');
+
+        if (progressStatus) {
+            progressStatus.textContent = status;
+        }
+
+        if (progressCounter) {
+            progressCounter.textContent = `${current}/${total}`;
+        }
+
+        if (progressFill) {
+            const percentage = Math.round((current / total) * 100);
+            progressFill.style.width = `${percentage}%`;
+        }
+
+        if (currentMangaTitle) {
+            if (mangaTitle && !completed) {
+                currentMangaTitle.textContent = `Currently checking: ${mangaTitle}`;
+            } else if (completed) {
+                currentMangaTitle.textContent = '✅ Update check completed!';
+            } else {
+                currentMangaTitle.textContent = '';
+            }
+        }
+
+        // Update check button if it exists and is in checking state
+        const checkBtn = document.getElementById('checkUpdatesBtn');
+        if (checkBtn && checkBtn.disabled) {
+            const percentage = Math.round((current / total) * 100);
+            if (completed) {
+                checkBtn.innerHTML = '✅ Completed!';
+                setTimeout(() => {
+                    checkBtn.disabled = false;
+                    checkBtn.innerHTML = '🔄 Check for Updates';
+                }, 2000);
+            } else {
+                checkBtn.innerHTML = `⏳ ${current}/${total} (${percentage}%)`;
+            }
+        }
+
+        // Show progress in console for debugging
+        console.log(`Progress: ${current}/${total} - ${status}`);
+
+        // If we have a specific manga title, show it in a toast or status
+        if (mangaTitle && !completed) {
+            console.log(`Currently checking: ${mangaTitle}`);
         }
     }
 
@@ -2836,6 +2930,72 @@ class MangaReader {
         console.log('🗑️ Sources cache cleared');
     }
 
+    // Smart chapter validation function (same as in main.js)
+    getValidatedLatestChapter(chapters) {
+        if (!chapters || chapters.length === 0) {
+            return 0;
+        }
+
+        // Convert chapter numbers to floats and sort in descending order
+        const chapterNumbers = chapters
+            .map(ch => parseFloat(ch.number) || 0)
+            .filter(num => num > 0)
+            .sort((a, b) => b - a);
+
+        if (chapterNumbers.length === 0) {
+            return 0;
+        }
+
+        // If we have 5 or fewer chapters, just return the highest
+        if (chapterNumbers.length <= 5) {
+            return chapterNumbers[0];
+        }
+
+        // Check the last 5 chapters for logical incrementation
+        const last5Chapters = chapterNumbers.slice(0, 5);
+
+        console.log(`🔍 Validating last 5 chapters: [${last5Chapters.join(', ')}]`);
+
+        // Calculate the differences between consecutive chapters
+        const differences = [];
+        for (let i = 0; i < last5Chapters.length - 1; i++) {
+            const diff = last5Chapters[i] - last5Chapters[i + 1];
+            differences.push(diff);
+        }
+
+        console.log(`📊 Chapter differences: [${differences.join(', ')}]`);
+
+        // Check if the differences are consistent (logical incrementation)
+        // Find the most common difference pattern (ignoring outliers)
+        const reasonableDifferences = differences.filter(diff => diff <= 10); // Reasonable chapter gaps
+
+        if (reasonableDifferences.length >= 2) {
+            const avgReasonableDiff = reasonableDifferences.reduce((sum, diff) => sum + diff, 0) / reasonableDifferences.length;
+            const maxReasonableDiff = Math.max(3, avgReasonableDiff * 2); // More conservative threshold
+
+            console.log(`📈 Average reasonable difference: ${avgReasonableDiff.toFixed(2)}, Max reasonable: ${maxReasonableDiff.toFixed(2)}`);
+
+            // Check each chapter from highest to lowest, return first valid one
+            for (let i = 0; i < last5Chapters.length - 1; i++) {
+                const currentDiff = differences[i];
+                if (currentDiff <= maxReasonableDiff) {
+                    console.log(`✅ Using validated latest chapter: ${last5Chapters[i]}`);
+                    return last5Chapters[i];
+                } else {
+                    console.log(`⚠️ Skipping outlier chapter: ${last5Chapters[i]} (diff: ${currentDiff.toFixed(2)} > ${maxReasonableDiff.toFixed(2)})`);
+                }
+            }
+
+            // If all differences are outliers, return the last chapter (most conservative)
+            console.log(`⚠️ All chapters seem to be outliers, using most conservative: ${last5Chapters[last5Chapters.length - 1]}`);
+            return last5Chapters[last5Chapters.length - 1];
+        }
+
+        // If we can't determine a pattern, return the highest (fallback)
+        console.log(`✅ Cannot determine pattern, using highest: ${last5Chapters[0]}`);
+        return last5Chapters[0];
+    }
+
     refreshMangaSources() {
         if (this.currentManga) {
             // Clear cache for current manga
@@ -2845,6 +3005,46 @@ class MangaReader {
             // Refresh sources
             this.findMangaSources(this.currentManga);
             console.log('🔄 Refreshing sources for:', this.currentManga.title);
+        }
+    }
+
+    setupProgressTooltipHover() {
+        const checkBtn = document.getElementById('checkUpdatesBtn');
+        const tooltip = document.getElementById('updateProgressTooltip');
+
+        if (checkBtn && tooltip) {
+            let hoverTimeout;
+
+            checkBtn.addEventListener('mouseenter', () => {
+                // Only show tooltip if button is disabled (checking in progress)
+                if (checkBtn.disabled && !tooltip.classList.contains('hidden')) {
+                    clearTimeout(hoverTimeout);
+                    tooltip.style.opacity = '1';
+                    tooltip.style.visibility = 'visible';
+                }
+            });
+
+            checkBtn.addEventListener('mouseleave', () => {
+                // Hide tooltip after a short delay
+                hoverTimeout = setTimeout(() => {
+                    tooltip.style.opacity = '0';
+                    tooltip.style.visibility = 'hidden';
+                }, 300);
+            });
+
+            // Keep tooltip visible when hovering over it
+            tooltip.addEventListener('mouseenter', () => {
+                clearTimeout(hoverTimeout);
+                tooltip.style.opacity = '1';
+                tooltip.style.visibility = 'visible';
+            });
+
+            tooltip.addEventListener('mouseleave', () => {
+                hoverTimeout = setTimeout(() => {
+                    tooltip.style.opacity = '0';
+                    tooltip.style.visibility = 'hidden';
+                }, 300);
+            });
         }
     }
 

@@ -193,8 +193,22 @@
                 <div class="follows-header">
                     <h2>Following</h2>
                     <div class="follows-actions">
-                        <button id="checkUpdatesBtn" class="import-export-btn check-updates-btn">🔄 Check for
-                            Updates</button>
+                        <div class="button-with-tooltip">
+                            <button id="checkUpdatesBtn" class="import-export-btn check-updates-btn">🔄 Check for
+                                Updates</button>
+                            <div id="updateProgressTooltip" class="progress-tooltip hidden">
+                                <div class="tooltip-content">
+                                    <div class="progress-info">
+                                        <span id="progressStatus">Checking for updates...</span>
+                                        <span id="progressCounter">0/0</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div id="progressFill" class="progress-fill"></div>
+                                    </div>
+                                    <div id="currentMangaTitle" class="current-manga-title"></div>
+                                </div>
+                            </div>
+                        </div>
                         <button id="fetchCoversBtn" class="import-export-btn fetch-covers-btn">🖼️ Fetch All
                             Covers</button>
                         <button id="updateReadingProgressBtn" class="import-export-btn">📖 Add Continue Buttons</button>

@@ -189,6 +189,11 @@ class MangaReader {
         addListener('deselectAllSources', 'click', () => this.deselectAllSources());
         addListener('resetToDefault', 'click', () => this.resetSourcesToDefault());
 
+        // Notification settings buttons
+        addListener('selectAllNotificationSources', 'click', () => this.selectAllNotificationSources());
+        addListener('deselectAllNotificationSources', 'click', () => this.deselectAllNotificationSources());
+        addListener('resetNotificationToDefault', 'click', () => this.resetNotificationSourcesToDefault());
+
         // Reader controls (top)
         addListener('prevChapter', 'click', () => this.previousChapter());
         addListener('nextChapter', 'click', () => this.nextChapter());
@@ -6089,7 +6094,10 @@ class MangaReader {
 
         this.hideAllViews();
         document.getElementById('settingsPage').classList.remove('hidden');
-        await this.loadSourceSettings();
+        await Promise.all([
+            this.loadSourceSettings(),
+            this.loadNotificationSourceSettings()
+        ]);
     }
 
     async loadSourceSettings() {
@@ -6199,6 +6207,117 @@ class MangaReader {
         } catch (error) {
             console.error('Failed to reset sources to default:', error);
             this.showError('Failed to reset sources');
+        }
+    }
+
+    // Notification source settings methods
+    async loadNotificationSourceSettings() {
+        const notificationSourceSettings = document.getElementById('notificationSourceSettings');
+        notificationSourceSettings.innerHTML = '<div class="loading">Loading notification sources...</div>';
+
+        try {
+            // Get all available sources and enabled notification sources
+            const [allSources, enabledNotificationSources] = await Promise.all([
+                window.mangaAPI.getSources(),
+                window.mangaAPI.getEnabledNotificationSources()
+            ]);
+
+            notificationSourceSettings.innerHTML = '';
+
+            allSources.forEach(source => {
+                const isEnabled = enabledNotificationSources.includes(source.name);
+                const sourceItem = document.createElement('div');
+                sourceItem.className = `source-item ${isEnabled ? 'enabled' : 'disabled'}`;
+
+                sourceItem.innerHTML = `
+                    <div class="source-name">${source.name}</div>
+                    <div class="source-toggle ${isEnabled ? 'enabled' : ''}" data-source="${source.name}"></div>
+                `;
+
+                // Add click handler for toggle
+                const toggle = sourceItem.querySelector('.source-toggle');
+                toggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleNotificationSource(source.name, toggle, sourceItem);
+                });
+
+                // Also allow clicking the whole item to toggle
+                sourceItem.addEventListener('click', () => {
+                    this.toggleNotificationSource(source.name, toggle, sourceItem);
+                });
+
+                notificationSourceSettings.appendChild(sourceItem);
+            });
+
+        } catch (error) {
+            console.error('Failed to load notification source settings:', error);
+            notificationSourceSettings.innerHTML = '<div class="loading">Failed to load notification sources</div>';
+        }
+    }
+
+    async toggleNotificationSource(sourceName, toggleElement, sourceItem) {
+        try {
+            const isCurrentlyEnabled = toggleElement.classList.contains('enabled');
+
+            if (isCurrentlyEnabled) {
+                await window.mangaAPI.disableNotificationSource(sourceName);
+                toggleElement.classList.remove('enabled');
+                sourceItem.classList.remove('enabled');
+                sourceItem.classList.add('disabled');
+
+            } else {
+                await window.mangaAPI.enableNotificationSource(sourceName);
+                toggleElement.classList.add('enabled');
+                sourceItem.classList.remove('disabled');
+                sourceItem.classList.add('enabled');
+
+            }
+
+            // Show feedback
+            this.showSuccess(`${sourceName} notifications ${isCurrentlyEnabled ? 'disabled' : 'enabled'}`);
+
+        } catch (error) {
+            console.error('Failed to toggle notification source:', error);
+            this.showError('Failed to update notification source settings');
+        }
+    }
+
+    async selectAllNotificationSources() {
+        try {
+            const allSources = await window.mangaAPI.getSources();
+            const sourceNames = allSources.map(source => source.name);
+
+            await window.mangaAPI.setEnabledNotificationSources(sourceNames);
+            await this.loadNotificationSourceSettings();
+            this.showSuccess('All notification sources enabled');
+
+        } catch (error) {
+            console.error('Failed to select all notification sources:', error);
+            this.showError('Failed to enable all notification sources');
+        }
+    }
+
+    async deselectAllNotificationSources() {
+        try {
+            await window.mangaAPI.setEnabledNotificationSources([]);
+            await this.loadNotificationSourceSettings();
+            this.showSuccess('All notification sources disabled');
+
+        } catch (error) {
+            console.error('Failed to deselect all notification sources:', error);
+            this.showError('Failed to disable all notification sources');
+        }
+    }
+
+    async resetNotificationSourcesToDefault() {
+        try {
+            await window.mangaAPI.resetNotificationSourcesToDefault();
+            await this.loadNotificationSourceSettings();
+            this.showSuccess('Reset to default (all sources enabled)');
+
+        } catch (error) {
+            console.error('Failed to reset notification sources to default:', error);
+            this.showError('Failed to reset notification sources');
         }
     }
 

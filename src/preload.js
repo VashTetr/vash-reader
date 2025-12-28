@@ -68,7 +68,15 @@ contextBridge.exposeInMainWorld('mangaAPI', {
     isSourceEnabled: (sourceName) => ipcRenderer.invoke('is-source-enabled', sourceName),
     enableSource: (sourceName) => ipcRenderer.invoke('enable-source', sourceName),
     disableSource: (sourceName) => ipcRenderer.invoke('disable-source', sourceName),
-    resetSourcesToDefault: () => ipcRenderer.invoke('reset-sources-to-default')
+    resetSourcesToDefault: () => ipcRenderer.invoke('reset-sources-to-default'),
+
+    // Notification source settings
+    getEnabledNotificationSources: () => ipcRenderer.invoke('get-enabled-notification-sources'),
+    setEnabledNotificationSources: (sources) => ipcRenderer.invoke('set-enabled-notification-sources', sources),
+    isNotificationSourceEnabled: (sourceName) => ipcRenderer.invoke('is-notification-source-enabled', sourceName),
+    enableNotificationSource: (sourceName) => ipcRenderer.invoke('enable-notification-source', sourceName),
+    disableNotificationSource: (sourceName) => ipcRenderer.invoke('disable-notification-source', sourceName),
+    resetNotificationSourcesToDefault: () => ipcRenderer.invoke('reset-notification-sources-to-default')
 });
 
 contextBridge.exposeInMainWorld('electronAPI', {

@@ -440,13 +440,13 @@ ipcMain.handle('should-check-for-notifications', async (event) => {
 // Check for new chapters on followed manga
 ipcMain.handle('check-for-updates', async (event) => {
     try {
-        console.log('Starting chapter update check...');
+        console.log('Starting manual chapter update check...');
 
         // Set next allowed check time (current time + 3 hours)
         storage.setNextNotificationCheck();
 
         const results = await checkForNewChapters();
-        console.log('Chapter update check completed:', results);
+        console.log('Manual chapter update check completed:', results);
         return results;
     } catch (error) {
         console.error('Check for updates error:', error);
@@ -524,6 +524,8 @@ function getValidatedLatestChapter(chapters) {
 async function checkForNewChapters() {
     try {
         const follows = storage.getFollows();
+        const enabledNotificationSources = storage.getEnabledNotificationSources();
+
         const results = {
             checked: 0,
             newChapters: 0,
@@ -531,7 +533,8 @@ async function checkForNewChapters() {
             notifications: []
         };
 
-        console.log(`Checking ${follows.length} followed manga for updates...`);
+        console.log(`Starting update check for ${follows.length} followed manga...`);
+        console.log(`Notification sources enabled: ${enabledNotificationSources.join(', ')} (${enabledNotificationSources.length} total)`);
 
         // Send initial progress
         if (mainWindow && !mainWindow.isDestroyed()) {
@@ -564,18 +567,21 @@ async function checkForNewChapters() {
                     }
 
                     // Find sources for this manga
-                    const sources = await mangaScraper.findMangaInAllSources(manga.title, manga.url);
+                    const enabledNotificationSources = storage.getEnabledNotificationSources();
+                    const allSources = await mangaScraper.findMangaInAllSources(manga.title, manga.url, enabledNotificationSources);
 
-                    if (sources.length === 0) {
-                        console.log(`No sources found for ${manga.title}`);
+                    if (allSources.length === 0) {
+                        console.log(`No enabled notification sources found for ${manga.title}. Enabled sources: ${enabledNotificationSources.join(', ')}`);
                         return;
                     }
+
+                    console.log(`Checking ${allSources.length} sources for ${manga.title}: ${allSources.map(s => s.parserName).join(', ')}`);
 
                     // Check each source for new chapters
                     let latestChapterFound = 0;
                     let bestSource = null;
 
-                    for (const source of sources.slice(0, 3)) { // Check up to 3 sources
+                    for (const source of allSources.slice(0, 3)) { // Check up to 3 sources
                         try {
                             const chapters = await mangaScraper.getChapters(source.url, source.parserName);
 
@@ -804,6 +810,65 @@ ipcMain.handle('reset-sources-to-default', async (event) => {
         return { success: true };
     } catch (error) {
         console.error('Reset sources to default error:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Notification source settings handlers
+ipcMain.handle('get-enabled-notification-sources', async (event) => {
+    try {
+        return storage.getEnabledNotificationSources();
+    } catch (error) {
+        console.error('Get enabled notification sources error:', error);
+        return ['Comick', 'MangaFire', 'MangaTown', 'ToonTube']; // Default fallback
+    }
+});
+
+ipcMain.handle('set-enabled-notification-sources', async (event, sources) => {
+    try {
+        storage.setEnabledNotificationSources(sources);
+        return { success: true };
+    } catch (error) {
+        console.error('Set enabled notification sources error:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('is-notification-source-enabled', async (event, sourceName) => {
+    try {
+        return storage.isNotificationSourceEnabled(sourceName);
+    } catch (error) {
+        console.error('Is notification source enabled error:', error);
+        return true; // Default fallback - enable all by default
+    }
+});
+
+ipcMain.handle('enable-notification-source', async (event, sourceName) => {
+    try {
+        storage.enableNotificationSource(sourceName);
+        return { success: true };
+    } catch (error) {
+        console.error('Enable notification source error:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('disable-notification-source', async (event, sourceName) => {
+    try {
+        storage.disableNotificationSource(sourceName);
+        return { success: true };
+    } catch (error) {
+        console.error('Disable notification source error:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('reset-notification-sources-to-default', async (event) => {
+    try {
+        storage.resetNotificationSourcesToDefault();
+        return { success: true };
+    } catch (error) {
+        console.error('Reset notification sources to default error:', error);
         return { success: false, error: error.message };
     }
 });

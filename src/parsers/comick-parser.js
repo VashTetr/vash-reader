@@ -166,7 +166,6 @@ class ComickParser extends BaseParser {
 
             // Use the 'trending' object from the main endpoint with time periods
             if (mainData && mainData.trending && typeof mainData.trending === 'object') {
-                console.log('DEBUG: Using trending object from main endpoint');
 
                 // Try different time periods (7, 30, 90 days) - prefer shorter periods for more recent trending
                 const timePeriods = ['7', '30', '90'];
@@ -210,7 +209,6 @@ class ComickParser extends BaseParser {
 
             // If no results from main endpoint, try the separate trending endpoint
             if (results.length === 0) {
-                console.log('DEBUG: Fallback to separate trending endpoint');
                 const trendingUrl = `${this.baseUrl}/top?type=trending&day=180`;
                 const trendingData = await this.fetchJson(trendingUrl);
 
@@ -266,7 +264,6 @@ class ComickParser extends BaseParser {
 
             // Use the 'topFollowNewComics' object from the main endpoint with time periods
             if (mainData && mainData.topFollowNewComics && typeof mainData.topFollowNewComics === 'object') {
-                console.log('DEBUG: Using topFollowNewComics object from main endpoint');
 
                 // Try different time periods (7, 30, 90 days) - prefer shorter periods for newer comics
                 const timePeriods = ['7', '30', '90'];
@@ -310,7 +307,6 @@ class ComickParser extends BaseParser {
 
             // If no results from main endpoint, try the separate newfollow endpoint
             if (results.length === 0) {
-                console.log('DEBUG: Fallback to separate newfollow endpoint');
                 const newFollowUrl = `${this.baseUrl}/top?type=newfollow&day=180`;
                 const newFollowData = await this.fetchJson(newFollowUrl);
 

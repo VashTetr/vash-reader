@@ -145,7 +145,7 @@ class MangaScraper {
         return unique;
     }
 
-    async findMangaInAllSources(mangaTitle, mangaUrl = null) {
+    async findMangaInAllSources(mangaTitle, mangaUrl = null, enabledSources = null) {
         try {
             console.log(`Searching for "${mangaTitle}" in all sources...`);
 
@@ -167,9 +167,15 @@ class MangaScraper {
                 }
             }
 
-            // Search for the manga in all reading sources (exclude Comick)
-            const readingSources = this.parserManager.parsers.filter(parser => parser.name !== 'Comick');
-            console.log(`Available reading sources: ${readingSources.map(p => p.name).join(', ')}`);
+            // Filter reading sources based on enabled sources if provided
+            let readingSources = this.parserManager.parsers.filter(parser => parser.name !== 'Comick');
+
+            if (enabledSources && enabledSources.length > 0) {
+                readingSources = readingSources.filter(parser => enabledSources.includes(parser.name));
+                console.log(`Filtered to enabled sources: ${readingSources.map(p => p.name).join(', ')} (${readingSources.length}/${this.parserManager.parsers.length - 1} sources)`);
+            } else {
+                console.log(`Available reading sources: ${readingSources.map(p => p.name).join(', ')}`);
+            }
 
             // Smart title selection - prioritize English titles and limit to top 5
             const prioritizedTitles = this.selectBestTitles(allTitles, 5);

@@ -253,18 +253,40 @@
 
             <div id="settingsPage" class="settings-page hidden">
                 <button id="backFromSettings" class="back-btn">← Back</button>
-                <div class="settings-header">
-                    <h2>Search Sources</h2>
-                    <p class="settings-description">Select which sources to use for manga search. Comick is recommended
-                        as the primary source.</p>
+
+                <!-- Search Sources Section -->
+                <div class="settings-section">
+                    <div class="settings-header">
+                        <h2>Search Sources</h2>
+                        <p class="settings-description">Select which sources to use for manga search. Comick is
+                            recommended
+                            as the primary source.</p>
+                    </div>
+                    <div id="sourceSettings" class="source-grid">
+                        <div class="loading">Loading sources...</div>
+                    </div>
+                    <div class="settings-actions">
+                        <button id="selectAllSources" class="settings-btn">Select All</button>
+                        <button id="deselectAllSources" class="settings-btn">Deselect All</button>
+                        <button id="resetToDefault" class="settings-btn primary">Reset to Default</button>
+                    </div>
                 </div>
-                <div id="sourceSettings" class="source-grid">
-                    <div class="loading">Loading sources...</div>
-                </div>
-                <div class="settings-actions">
-                    <button id="selectAllSources" class="settings-btn">Select All</button>
-                    <button id="deselectAllSources" class="settings-btn">Deselect All</button>
-                    <button id="resetToDefault" class="settings-btn primary">Reset to Default</button>
+
+                <!-- Notification Settings Section -->
+                <div class="settings-section">
+                    <div class="settings-header">
+                        <h2>Notification Settings</h2>
+                        <p class="settings-description">Select which sources to check for new chapters when looking for
+                            updates. All sources are enabled by default.</p>
+                    </div>
+                    <div id="notificationSourceSettings" class="source-grid">
+                        <div class="loading">Loading notification sources...</div>
+                    </div>
+                    <div class="settings-actions">
+                        <button id="selectAllNotificationSources" class="settings-btn">Select All</button>
+                        <button id="deselectAllNotificationSources" class="settings-btn">Deselect All</button>
+                        <button id="resetNotificationToDefault" class="settings-btn primary">Reset to Default</button>
+                    </div>
                 </div>
             </div>
 

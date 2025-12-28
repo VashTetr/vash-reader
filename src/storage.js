@@ -478,6 +478,57 @@ class Storage {
         this.setEnabledSources(['Comick']);
     }
 
+    // Notification source settings methods
+    getEnabledNotificationSources() {
+        if (!this.data.settings) {
+            this.data.settings = {};
+        }
+
+        // Default to all sources enabled for notifications if no settings exist
+        if (!this.data.settings.enabledNotificationSources) {
+            // Get all available sources as default
+            const allSources = ['Comick', 'MangaFire', 'MangaTown', 'ToonTube'];
+            this.data.settings.enabledNotificationSources = allSources;
+            this.saveData();
+        }
+
+        return this.data.settings.enabledNotificationSources;
+    }
+
+    setEnabledNotificationSources(sources) {
+        if (!this.data.settings) {
+            this.data.settings = {};
+        }
+
+        this.data.settings.enabledNotificationSources = sources;
+        this.saveData();
+    }
+
+    isNotificationSourceEnabled(sourceName) {
+        const enabledSources = this.getEnabledNotificationSources();
+        return enabledSources.includes(sourceName);
+    }
+
+    enableNotificationSource(sourceName) {
+        const enabledSources = this.getEnabledNotificationSources();
+        if (!enabledSources.includes(sourceName)) {
+            enabledSources.push(sourceName);
+            this.setEnabledNotificationSources(enabledSources);
+        }
+    }
+
+    disableNotificationSource(sourceName) {
+        const enabledSources = this.getEnabledNotificationSources();
+        const filtered = enabledSources.filter(source => source !== sourceName);
+        this.setEnabledNotificationSources(filtered);
+    }
+
+    resetNotificationSourcesToDefault() {
+        // Reset to all sources enabled
+        const allSources = ['Comick', 'MangaFire', 'MangaTown', 'ToonTube'];
+        this.setEnabledNotificationSources(allSources);
+    }
+
     // Import/Export functionality
     exportFollowsToCSV() {
         if (!this.data.follows) {

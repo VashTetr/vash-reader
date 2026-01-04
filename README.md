@@ -1,4 +1,5 @@
 ## Notice
+Currently DROPPED. you can fork or anything and work on it yourself. it has some bugs but overall works.
 
 Btw. this is fully made with AI as kind of an experiment. just want to see what ai can do with a bit of help
 

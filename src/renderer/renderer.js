@@ -194,6 +194,9 @@ class MangaReader {
         addListener('deselectAllNotificationSources', 'click', () => this.deselectAllNotificationSources());
         addListener('resetNotificationToDefault', 'click', () => this.resetNotificationSourcesToDefault());
 
+        // Check only source manga toggle
+        addListener('checkOnlySourceManga', 'change', (e) => this.toggleCheckOnlySourceManga(e.target.checked));
+
         // Reader controls (top)
         addListener('prevChapter', 'click', () => this.previousChapter());
         addListener('nextChapter', 'click', () => this.nextChapter());
@@ -6096,7 +6099,7 @@ class MangaReader {
         document.getElementById('settingsPage').classList.remove('hidden');
         await Promise.all([
             this.loadSourceSettings(),
-            this.loadNotificationSourceSettings()
+            this.loadNotificationSettings()
         ]);
     }
 
@@ -6211,6 +6214,48 @@ class MangaReader {
     }
 
     // Notification source settings methods
+    async loadNotificationSettings() {
+        try {
+            // Load the check only source manga toggle state
+            const checkOnlySourceManga = await window.mangaAPI.getCheckOnlySourceManga();
+            const toggleCheckbox = document.getElementById('checkOnlySourceManga');
+            toggleCheckbox.checked = checkOnlySourceManga;
+
+            // Show/hide source selection based on toggle state
+            this.updateSourceSelectionVisibility(checkOnlySourceManga);
+
+            // Load notification source settings
+            await this.loadNotificationSourceSettings();
+
+        } catch (error) {
+            console.error('Failed to load notification settings:', error);
+        }
+    }
+
+    updateSourceSelectionVisibility(checkOnlySourceManga) {
+        const sourceSelectionContainer = document.getElementById('sourceSelectionContainer');
+        if (checkOnlySourceManga) {
+            sourceSelectionContainer.classList.add('source-selection-hidden');
+        } else {
+            sourceSelectionContainer.classList.remove('source-selection-hidden');
+        }
+    }
+
+    async toggleCheckOnlySourceManga(enabled) {
+        try {
+            await window.mangaAPI.setCheckOnlySourceManga(enabled);
+            this.updateSourceSelectionVisibility(enabled);
+
+            if (enabled) {
+                this.showSuccess('Enabled: Will only check the specific source where you\'re reading each manga');
+            } else {
+                this.showSuccess('Disabled: Will check all enabled sources for updates');
+            }
+        } catch (error) {
+            console.error('Failed to toggle check only source manga:', error);
+            this.showError('Failed to update setting');
+        }
+    }
     async loadNotificationSourceSettings() {
         const notificationSourceSettings = document.getElementById('notificationSourceSettings');
         notificationSourceSettings.innerHTML = '<div class="loading">Loading notification sources...</div>';

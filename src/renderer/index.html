@@ -276,16 +276,40 @@
                 <div class="settings-section">
                     <div class="settings-header">
                         <h2>Notification Settings</h2>
-                        <p class="settings-description">Select which sources to check for new chapters when looking for
-                            updates. All sources are enabled by default.</p>
+                        <p class="settings-description">Configure how the app checks for new chapters when looking for
+                            updates.</p>
                     </div>
-                    <div id="notificationSourceSettings" class="source-grid">
-                        <div class="loading">Loading notification sources...</div>
+
+                    <!-- Check Only Source Manga Toggle -->
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Check Only Source Manga</h3>
+                            <p class="setting-description">Only check for updates from the specific source where you're
+                                reading each manga, instead of checking all enabled sources. Manga without a specific
+                                source will be ignored.</p>
+                        </div>
+                        <div class="setting-toggle">
+                            <input type="checkbox" id="checkOnlySourceManga" class="toggle-checkbox">
+                            <label for="checkOnlySourceManga" class="toggle-label">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
                     </div>
-                    <div class="settings-actions">
-                        <button id="selectAllNotificationSources" class="settings-btn">Select All</button>
-                        <button id="deselectAllNotificationSources" class="settings-btn">Deselect All</button>
-                        <button id="resetNotificationToDefault" class="settings-btn primary">Reset to Default</button>
+
+                    <!-- Source Selection (only shown when Check Only Source Manga is disabled) -->
+                    <div id="sourceSelectionContainer">
+                        <h3>Source Selection</h3>
+                        <p class="settings-description">Select which sources to check for new chapters. All sources are
+                            enabled by default.</p>
+                        <div id="notificationSourceSettings" class="source-grid">
+                            <div class="loading">Loading notification sources...</div>
+                        </div>
+                        <div class="settings-actions">
+                            <button id="selectAllNotificationSources" class="settings-btn">Select All</button>
+                            <button id="deselectAllNotificationSources" class="settings-btn">Deselect All</button>
+                            <button id="resetNotificationToDefault" class="settings-btn primary">Reset to
+                                Default</button>
+                        </div>
                     </div>
                 </div>
             </div>

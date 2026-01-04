@@ -535,6 +535,7 @@ async function checkForNewChapters() {
 
         console.log(`Starting update check for ${follows.length} followed manga...`);
         console.log(`Notification sources enabled: ${enabledNotificationSources.join(', ')} (${enabledNotificationSources.length} total)`);
+        console.log(`Check only source manga: ${storage.getCheckOnlySourceManga() ? 'ENABLED' : 'DISABLED'}`);
 
         // Send initial progress
         if (mainWindow && !mainWindow.isDestroyed()) {
@@ -568,10 +569,31 @@ async function checkForNewChapters() {
 
                     // Find sources for this manga
                     const enabledNotificationSources = storage.getEnabledNotificationSources();
-                    const allSources = await mangaScraper.findMangaInAllSources(manga.title, manga.url, enabledNotificationSources);
+                    const checkOnlySourceManga = storage.getCheckOnlySourceManga();
+
+                    let allSources = [];
+
+                    if (checkOnlySourceManga) {
+                        // Only check the specific source where the user is reading this manga
+                        if (manga.source && manga.source !== 'Unknown') {
+                            console.log(`Check only source mode: Using source ${manga.source} for ${manga.title}`);
+                            // Create a mock source object for the specific source
+                            allSources = [{
+                                parserName: manga.source,
+                                url: manga.url,
+                                title: manga.title
+                            }];
+                        } else {
+                            console.log(`Check only source mode: Skipping ${manga.title} (no specific source)`);
+                            return; // Skip manga without a specific source
+                        }
+                    } else {
+                        // Use the normal multi-source search
+                        allSources = await mangaScraper.findMangaInAllSources(manga.title, manga.url, enabledNotificationSources);
+                    }
 
                     if (allSources.length === 0) {
-                        console.log(`No enabled notification sources found for ${manga.title}. Enabled sources: ${enabledNotificationSources.join(', ')}`);
+                        console.log(`No sources found for ${manga.title}. Check only source: ${checkOnlySourceManga}, Enabled sources: ${enabledNotificationSources.join(', ')}`);
                         return;
                     }
 
@@ -869,6 +891,26 @@ ipcMain.handle('reset-notification-sources-to-default', async (event) => {
         return { success: true };
     } catch (error) {
         console.error('Reset notification sources to default error:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Check only source manga setting handlers
+ipcMain.handle('get-check-only-source-manga', async (event) => {
+    try {
+        return storage.getCheckOnlySourceManga();
+    } catch (error) {
+        console.error('Get check only source manga error:', error);
+        return false; // Default fallback
+    }
+});
+
+ipcMain.handle('set-check-only-source-manga', async (event, enabled) => {
+    try {
+        storage.setCheckOnlySourceManga(enabled);
+        return { success: true };
+    } catch (error) {
+        console.error('Set check only source manga error:', error);
         return { success: false, error: error.message };
     }
 });

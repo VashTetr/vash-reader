@@ -76,7 +76,11 @@ contextBridge.exposeInMainWorld('mangaAPI', {
     isNotificationSourceEnabled: (sourceName) => ipcRenderer.invoke('is-notification-source-enabled', sourceName),
     enableNotificationSource: (sourceName) => ipcRenderer.invoke('enable-notification-source', sourceName),
     disableNotificationSource: (sourceName) => ipcRenderer.invoke('disable-notification-source', sourceName),
-    resetNotificationSourcesToDefault: () => ipcRenderer.invoke('reset-notification-sources-to-default')
+    resetNotificationSourcesToDefault: () => ipcRenderer.invoke('reset-notification-sources-to-default'),
+
+    // Check only source manga setting
+    getCheckOnlySourceManga: () => ipcRenderer.invoke('get-check-only-source-manga'),
+    setCheckOnlySourceManga: (enabled) => ipcRenderer.invoke('set-check-only-source-manga', enabled)
 });
 
 contextBridge.exposeInMainWorld('electronAPI', {

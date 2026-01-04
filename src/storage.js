@@ -529,6 +529,30 @@ class Storage {
         this.setEnabledNotificationSources(allSources);
     }
 
+    // Check only source manga setting
+    getCheckOnlySourceManga() {
+        if (!this.data.settings) {
+            this.data.settings = {};
+        }
+
+        // Default to false (check all enabled sources)
+        if (this.data.settings.checkOnlySourceManga === undefined) {
+            this.data.settings.checkOnlySourceManga = false;
+            this.saveData();
+        }
+
+        return this.data.settings.checkOnlySourceManga;
+    }
+
+    setCheckOnlySourceManga(enabled) {
+        if (!this.data.settings) {
+            this.data.settings = {};
+        }
+
+        this.data.settings.checkOnlySourceManga = enabled;
+        this.saveData();
+    }
+
     // Import/Export functionality
     exportFollowsToCSV() {
         if (!this.data.follows) {

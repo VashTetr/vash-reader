@@ -3582,3 +3582,77 @@ body.zoomed::-webkit-scrollbar-thumb:hover {
     background: #3a3a3a;
     border-color: #666;
 }
+
+/* Setting item styles */
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: #333;
+    border-radius: 8px;
+    border: 1px solid #555;
+    margin-bottom: 20px;
+}
+
+.setting-info {
+    flex: 1;
+}
+
+.setting-info h3 {
+    color: #fff;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+}
+
+.setting-description {
+    color: #ccc;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin: 0;
+}
+
+.setting-toggle {
+    flex-shrink: 0;
+    margin-left: 20px;
+}
+
+/* Toggle switch styles */
+.toggle-checkbox {
+    display: none;
+}
+
+.toggle-label {
+    display: block;
+    width: 50px;
+    height: 26px;
+    background: #555;
+    border-radius: 13px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.3s;
+}
+
+.toggle-slider {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 22px;
+    height: 22px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+}
+
+.toggle-checkbox:checked+.toggle-label {
+    background: #2196F3;
+}
+
+.toggle-checkbox:checked+.toggle-label .toggle-slider {
+    transform: translateX(24px);
+}
+
+/* Hide source selection when check only source manga is enabled */
+.source-selection-hidden {
+    display: none;
+}
